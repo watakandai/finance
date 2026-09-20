@@ -1,0 +1,175 @@
+name: Daily market refresh
+
+# The part of this project GitHub Actions genuinely improves on running locally:
+# a runner has real outbound internet, a cron that fires whether or not a laptop
+# is open, and a free place to publish the result.
+#
+# No `pip install` step, deliberately: every fetcher, the database, the metric
+# maths, both rankers and the LLM clients are pure standard library. There is
+# nothing to install and nothing that can break on a dependency release.
+#
+# The database is CACHED between runs rather than rebuilt, and that does two
+# things here. It makes daily LLM ranking cost pennies - scores are keyed by a
+# hash of profile.md + model, so each run only pays for items it has never seen -
+# and it means the macro history accumulates, so a run where a data source is
+# rate-limited still has years of observations to compute against. Losing the
+# cache is recoverable: the next run re-fetches twelve years of FRED history and
+# re-scores once.
+
+on:
+  schedule:
+    # 11:00 UTC = 7am ET, an hour and a half before the 08:30 ET data releases
+    # and well before the open. The point of this page is to be read BEFORE the
+    # things on its calendar happen.
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'LLM provider (blank = use the RANKER_PROVIDER variable)'
+        required: false
+        type: choice
+        options: ['', 'gemini', 'anthropic']
+        default: ''
+      rescore_all:
+        description: 'Re-score every recent item, not just new ones'
+        required: false
+        type: boolean
+        default: false
+      limit:
+        description: 'Max items to LLM-score this run (blank = RANKER_LIMIT, 0 = no limit)'
+        required: false
+        type: string
+        default: ''
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# One run at a time. Two overlapping runs share one API quota, and the second to
+# finish cannot push its export (the first moved main) - so it fails before
+# saving its cache, and every score it paid for is lost.
+concurrency:
+  group: daily-fetch
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Rolling cache: the run-number key never hits, so the newest previous
+      # database is restored via the prefix and a fresh copy saved under this
+      # run's key.
+      - name: Restore database
+        uses: actions/cache@v4
+        with:
+          path: /tmp/finance.db
+          key: finance-db-${{ github.run_number }}
+          restore-keys: finance-db-
+
+      # Macro series, market prices and the calendar. Runs first because the
+      # LLM ranker is handed the current readings as context, so it can tell a
+      # print that confirms the consensus from one that breaks it.
+      - name: Fetch market data and the calendar
+        run: |
+          python -m finance.cli --db /tmp/finance.db data \
+            --years ${{ vars.HISTORY_YEARS || 12 }} \
+            --months ${{ vars.CALENDAR_MONTHS || 4 }}
+
+      - name: Fetch news
+        env:
+          # Optional. Without them Reddit falls back to its public feed, which
+          # is rate-limited from CI and carries no upvote counts.
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        run: python -m finance.cli --db /tmp/finance.db news
+
+      # Which provider to use is explicit: set the RANKER_PROVIDER repo variable
+      # (Settings -> Variables) to gemini or anthropic and add the matching
+      # secret. Left unset, the LLM steps are skipped and the site ships the
+      # computed regime plus heuristic scores - so a fork with no keys still
+      # produces a complete, working page.
+      - name: Resolve ranker provider
+        id: ranker
+        env:
+          REQUESTED: ${{ inputs.provider || vars.RANKER_PROVIDER }}
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          case "$REQUESTED" in
+            gemini)    [ "$HAS_GEMINI" = true ]    || { echo "::warning::RANKER_PROVIDER=gemini but GEMINI_API_KEY is not set; skipping LLM steps"; echo "provider=" >> "$GITHUB_OUTPUT"; exit 0; } ;;
+            anthropic) [ "$HAS_ANTHROPIC" = true ] || { echo "::warning::RANKER_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set; skipping LLM steps"; echo "provider=" >> "$GITHUB_OUTPUT"; exit 0; } ;;
+            '')        echo "RANKER_PROVIDER not set - shipping computed regime and heuristic scores only." ;;
+            *)         echo "::warning::unknown RANKER_PROVIDER '$REQUESTED'; skipping LLM steps"; echo "provider=" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          echo "provider=$REQUESTED" >> "$GITHUB_OUTPUT"
+
+      # Exactly one of the next two steps runs. `rank --llm` does the popularity,
+      # category, impact and heuristic passes itself before calling the provider,
+      # so running both would compute the same scores twice.
+      - name: Rank (impact + heuristic only)
+        if: steps.ranker.outputs.provider == ''
+        run: python -m finance.cli --db /tmp/finance.db rank
+
+      - name: Rank against profile.md with an LLM
+        if: steps.ranker.outputs.provider != ''
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PROVIDER: ${{ steps.ranker.outputs.provider }}
+          RESCORE_ALL: ${{ inputs.rescore_all }}
+          # A manual run's `limit` input wins over the variable, so a one-off
+          # "score everything" run does not mean editing repo settings.
+          LIMIT: ${{ inputs.limit != '' && inputs.limit || vars.RANKER_LIMIT }}
+          # Gemini's free tier counts REQUESTS against a small daily quota, not
+          # items - so send many items per request, and space requests out to
+          # stay under the per-minute limit rather than bump into it.
+          BATCH_SIZE: ${{ vars.RANKER_BATCH_SIZE || 40 }}
+          MIN_INTERVAL: ${{ vars.RANKER_MIN_INTERVAL || 8 }}
+        run: |
+          args=(--provider "$PROVIDER" --batch-size "$BATCH_SIZE" --min-interval "$MIN_INTERVAL")
+          [ "$RESCORE_ALL" = true ] && args+=(--rescore-all)
+          if [ -n "$LIMIT" ]; then
+            case "$LIMIT" in
+              *[!0-9]*) echo "::error::limit must be a whole number, got '$LIMIT'"; exit 1 ;;
+            esac
+            args+=(--limit "$LIMIT")
+          fi
+          python -m finance.cli --db /tmp/finance.db rank --llm "${args[@]}"
+
+      # One request. Falls back to the computed brief on any failure, so this
+      # step cannot fail the run.
+      - name: Write the daily brief
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PROVIDER: ${{ steps.ranker.outputs.provider }}
+        run: |
+          if [ -n "$PROVIDER" ]; then
+            python -m finance.cli --db /tmp/finance.db brief --llm --provider "$PROVIDER"
+          else
+            python -m finance.cli --db /tmp/finance.db brief
+          fi
+
+      # Keeps the cached database from growing without bound. News only:
+      # observations and calendar events are never pruned, because a z-score
+      # needs years of history and the whole series set is a few hundred KB.
+      - name: Prune old news
+        run: python -m finance.cli --db /tmp/finance.db prune --days ${{ vars.PRUNE_DAYS || 45 }}
+
+      - name: Export the static JSON
+        run: |
+          python -m finance.cli --db /tmp/finance.db export \
+            --out-dir docs/data --sort score --days ${{ vars.EXPORT_DAYS || 10 }}
+
+      - name: Commit and push if the export changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Daily market refresh'
+          file_pattern: docs/data/items.json docs/data/market.json

@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finance Curator</title>
+<style>
+  :root {
+    --bg:#f7f7f8; --card:#fff; --border:#e4e4e7; --text:#18181b; --muted:#71717a;
+    --accent:#1d4ed8; --accent-soft:#eef2ff; --chip:#f4f4f5; --seen:#a1a1aa;
+    --up:#15803d; --down:#b91c1c; --warn:#b45309; --neutral:#52525b;
+    --bar:#d4d4d8; --spark:#6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0d0d0f; --card:#161619; --border:#27272a; --text:#e8e8ea; --muted:#8b8b93;
+      --accent:#7d9bfa; --accent-soft:#181f35; --chip:#1f1f23; --seen:#5a5a63;
+      --up:#4ade80; --down:#f87171; --warn:#fbbf24; --neutral:#a1a1aa;
+      --bar:#3f3f46; --spark:#9ca3af;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  a { color:inherit; }
+  .wrap { max-width:1060px; margin:0 auto; padding:0 16px; }
+  header { position:sticky; top:0; z-index:30; background:var(--card);
+           border-bottom:1px solid var(--border); }
+  .hrow { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:9px 0 7px; }
+  h1 { font-size:15px; margin:0; letter-spacing:-.01em; white-space:nowrap; }
+  .sub { font-size:12px; color:var(--muted); }
+  .spacer { flex:1; }
+  nav { display:flex; gap:2px; overflow-x:auto; padding-bottom:6px; }
+  nav a { font-size:12.5px; color:var(--muted); text-decoration:none; padding:3px 9px;
+          border-radius:6px; white-space:nowrap; }
+  nav a:hover { background:var(--chip); color:var(--text); }
+  main { padding-bottom:70px; }
+  section { margin-top:26px; scroll-margin-top:78px; }
+  h2 { font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted);
+       margin:0 0 9px; padding-bottom:5px; border-bottom:1px solid var(--border);
+       display:flex; align-items:baseline; gap:8px; }
+  h2 .note { text-transform:none; letter-spacing:0; font-size:11.5px; opacity:.85; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
+          padding:13px 15px; }
+
+  /* brief */
+  .lede { font-size:15px; line-height:1.55; margin:0 0 10px; }
+  .stance { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase;
+            letter-spacing:.05em; padding:2px 7px; border-radius:5px; background:var(--chip);
+            color:var(--muted); }
+  .stance.pos { background:color-mix(in srgb, var(--up) 15%, transparent); color:var(--up); }
+  .stance.neg { background:color-mix(in srgb, var(--down) 15%, transparent); color:var(--down); }
+  .points { list-style:none; margin:0; padding:0; }
+  .points li { padding:6px 0; border-top:1px solid var(--border); font-size:13.5px; }
+  .points .tag { font-weight:650; margin-right:6px; }
+  .tension { margin-top:10px; padding:9px 11px; border-radius:8px; background:var(--accent-soft);
+             font-size:13px; border:1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+  .tension b { color:var(--accent); }
+
+  /* regime tiles */
+  .tiles { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:10px;
+          padding:10px 12px; cursor:pointer; }
+  .tile:hover { border-color:var(--accent); }
+  .tile .top { display:flex; align-items:center; gap:7px; }
+  .tile .name { font-weight:650; font-size:13px; }
+  .tile .state { font-size:12.5px; color:var(--muted); margin-top:4px; }
+  .dial { display:inline-flex; gap:2px; }
+  .dial i { width:5px; height:12px; border-radius:1px; background:var(--bar); }
+  .dial i.on.pos { background:var(--up); }
+  .dial i.on.neg { background:var(--down); }
+  .tile .detail { display:none; margin-top:9px; border-top:1px solid var(--border);
+                  padding-top:8px; font-size:12.5px; color:var(--muted); }
+  .tile.open .detail { display:block; }
+  .tile .detail p { margin:0 0 7px; }
+  .tile .detail .k { color:var(--text); font-weight:650; }
+  .ev { display:flex; justify-content:space-between; gap:8px; padding:2px 0;
+        font-variant-numeric:tabular-nums; }
+  .ev .en { color:var(--text); }
+  .ev .ed { opacity:.8; font-size:11.5px; }
+
+  /* tables */
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:right; font-weight:600; font-size:11px; text-transform:uppercase;
+       letter-spacing:.04em; color:var(--muted); padding:4px 6px; }
+  th:first-child, td:first-child { text-align:left; }
+  td { padding:4px 6px; border-top:1px solid var(--border); font-variant-numeric:tabular-nums; }
+  tr.metric { cursor:pointer; }
+  tr.metric:hover td { background:var(--card); }
+  tr.why td { padding:0 6px 10px; border-top:0; }
+  .whybox { font-size:12.5px; color:var(--muted); background:var(--card);
+            border:1px solid var(--border); border-radius:8px; padding:9px 11px; }
+  .whybox p { margin:0 0 6px; }
+  .whybox .k { color:var(--text); font-weight:650; }
+  .pos { color:var(--up); } .neg { color:var(--down); } .flat { color:var(--muted); }
+  .num { text-align:right; }
+  .rankbar { position:relative; height:5px; width:56px; background:var(--bar);
+             border-radius:3px; display:inline-block; vertical-align:middle; }
+  .rankbar i { position:absolute; top:-2px; width:3px; height:9px; border-radius:2px;
+               background:var(--accent); }
+  .famhead td { font-weight:650; font-size:11.5px; text-transform:uppercase;
+                letter-spacing:.05em; color:var(--muted); padding-top:13px; border-top:0; }
+  svg.spark { display:block; }
+
+  /* calendar */
+  .cal { list-style:none; margin:0; padding:0; }
+  .cal li { display:flex; gap:10px; align-items:baseline; padding:5px 0;
+            border-top:1px solid var(--border); font-size:13px; cursor:pointer; }
+  .cal li:first-child { border-top:0; }
+  .cal .when { flex:0 0 108px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .cal .when b { color:var(--text); font-weight:650; }
+  .cal .imp { flex:0 0 14px; color:var(--warn); }
+  .cal .ttl { flex:1; min-width:0; }
+  .cal .est { color:var(--muted); font-size:11.5px; }
+  .cal .d { display:none; font-size:12.5px; color:var(--muted); margin-top:3px; }
+  .cal li.open .d { display:block; }
+  .today { color:var(--accent); font-weight:650; }
+
+  /* news */
+  .bar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 9px; }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .seg button { border:0; background:var(--card); color:var(--muted); font:inherit;
+                font-size:12.5px; padding:5px 11px; cursor:pointer;
+                border-right:1px solid var(--border); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent);
+                                     font-weight:600; }
+  input[type=search] { flex:1; min-width:140px; padding:5px 10px; font:inherit; font-size:12.5px;
+    border:1px solid var(--border); border-radius:7px; background:var(--card); color:var(--text); }
+  .toggle { font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:5px;
+            cursor:pointer; user-select:none; }
+  .chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:11px; }
+  .chip { border:1px solid var(--border); background:var(--card); color:var(--muted);
+          border-radius:999px; padding:3px 10px; font-size:12px; cursor:pointer; }
+  .chip[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent);
+                               color:var(--accent); }
+  .chip .n { opacity:.6; margin-left:4px; font-variant-numeric:tabular-nums; }
+  .group-head { font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+                color:var(--muted); margin:18px 0 6px; padding-bottom:5px;
+                border-bottom:1px solid var(--border); }
+  .item { display:flex; gap:10px; padding:8px 10px; border-radius:8px; align-items:flex-start;
+          border:1px solid transparent; }
+  .item:hover { background:var(--card); border-color:var(--border); }
+  .item.cursor { border-color:var(--accent); background:var(--card); }
+  .item.seen .title a { color:var(--seen); font-weight:400; }
+  .scores { flex:0 0 46px; text-align:right; padding-top:1px; }
+  .sc { font-variant-numeric:tabular-nums; font-size:12.5px; font-weight:650; color:var(--accent); }
+  .sc.low { color:var(--muted); font-weight:400; }
+  .im { font-variant-numeric:tabular-nums; font-size:11px; color:var(--muted); }
+  .im.hi { color:var(--warn); font-weight:650; }
+  .body { min-width:0; flex:1; }
+  .title { margin:0; font-size:14.5px; font-weight:600; line-height:1.35; }
+  .title a { text-decoration:none; }
+  .title a:hover { text-decoration:underline; }
+  .meta { font-size:12px; color:var(--muted); margin-top:2px; display:flex; gap:6px;
+          flex-wrap:wrap; align-items:center; }
+  .dot::before { content:"·"; margin-right:6px; }
+  .src { font-weight:600; color:var(--text); opacity:.75; }
+  .t1 { color:var(--accent); font-weight:700; font-size:10.5px; border:1px solid var(--accent);
+        border-radius:4px; padding:0 4px; }
+  .why { font-style:italic; }
+  .mchip { background:var(--chip); border-radius:4px; padding:1px 6px; font-size:11px; }
+  .also a { color:var(--muted); text-decoration:none; border-bottom:1px dotted var(--border); }
+  .also a:hover { color:var(--accent); }
+  .summary { font-size:13px; color:var(--muted); margin-top:4px; display:none; }
+  .item.open .summary { display:block; }
+  .more { display:block; width:100%; margin:4px 0 2px; padding:7px 10px; font:inherit;
+          font-size:12.5px; color:var(--muted); background:transparent; cursor:pointer;
+          border:1px dashed var(--border); border-radius:8px; }
+  .more:hover { color:var(--accent); border-color:var(--accent); background:var(--card); }
+  .empty, .status { color:var(--muted); font-size:13px; padding:22px 0; text-align:center; }
+  .status.error { color:var(--down); }
+  footer { border-top:1px solid var(--border); margin-top:34px; padding:14px 0 50px;
+           font-size:12px; color:var(--muted); }
+  kbd { background:var(--chip); border:1px solid var(--border); border-radius:4px; padding:0 4px;
+        font:inherit; font-size:11px; }
+  .disclaimer { margin-top:8px; font-size:11.5px; opacity:.9; }
+  @media (max-width:620px) {
+    .sub.hide-sm { display:none; }
+    .cal .when { flex-basis:88px; }
+    th.opt, td.opt { display:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hrow">
+      <h1>Finance Curator</h1>
+      <span class="sub" id="generated"></span>
+      <span class="spacer"></span>
+      <span class="sub hide-sm" id="counts"></span>
+    </div>
+    <nav>
+      <a href="#brief">Brief</a>
+      <a href="#regime">Regime</a>
+      <a href="#markets">Cross-asset</a>
+      <a href="#calendar">Calendar</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#news">News</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="brief">
+    <h2>Today <span class="note" id="brief-by"></span></h2>
+    <div class="card" id="brief-card"><div class="status">Loading…</div></div>
+  </section>
+
+  <section id="regime">
+    <h2>Regime <span class="note">seven reads, in the order causation runs. Click any tile.</span></h2>
+    <div class="tiles" id="regime-tiles"></div>
+  </section>
+
+  <section id="markets">
+    <h2>Cross-asset <span class="note">what is leading, and what that combination usually means</span></h2>
+    <div id="snapshot"></div>
+  </section>
+
+  <section id="calendar">
+    <h2>Scheduled next <span class="note">~ means the date is inferred from the publication rule, not confirmed</span></h2>
+    <div class="card"><ul class="cal" id="cal-list"></ul></div>
+  </section>
+
+  <section id="metrics">
+    <h2>Metrics <span class="note">click a row for why it matters and what a move means</span></h2>
+    <div class="bar">
+      <div class="seg" id="tier-seg">
+        <button data-tier="1" aria-pressed="true">Headline</button>
+        <button data-tier="2">Core</button>
+        <button data-tier="3">Everything</button>
+      </div>
+    </div>
+    <div id="metrics-table"></div>
+  </section>
+
+  <section id="news">
+    <h2>News <span class="note">relevance to you, and market impact, scored separately</span></h2>
+    <div class="bar">
+      <div class="seg" id="window-seg">
+        <button data-days="1" aria-pressed="true">Today</button>
+        <button data-days="3">3 days</button>
+        <button data-days="7">Week</button>
+        <button data-days="0">All</button>
+      </div>
+      <div class="seg" id="sort-seg">
+        <button data-sort="score" aria-pressed="true">For you</button>
+        <button data-sort="impact">Impact</button>
+        <button data-sort="published_ts">Newest</button>
+      </div>
+      <div class="seg" id="group-seg">
+        <button data-group="horizon" aria-pressed="true">By horizon</button>
+        <button data-group="category">By topic</button>
+        <button data-group="">Flat</button>
+      </div>
+      <input type="search" id="q" placeholder="Filter by word, source, ticker…">
+      <label class="toggle"><input type="checkbox" id="hide-seen"> hide seen</label>
+    </div>
+    <div class="chips" id="cats"></div>
+    <div id="list"></div>
+    <div class="status" id="news-status">Loading…</div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <kbd>j</kbd>/<kbd>k</kbd> move · <kbd>o</kbd> open · <kbd>m</kbd> mark seen ·
+  <kbd>space</kbd> expand. News is ranked against <code>profile.md</code>;
+  read state is stored in this browser only.
+  <div class="disclaimer" id="disclaimer"></div>
+</footer>
+
+<script>
+const LS = {
+  // Per-browser preferences and read state. Every access is guarded: a private
+  // window, blocked site data or a thrown SecurityError must leave the page
+  // fully working, just without memory.
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); }
+    catch (e) { return fallback; }
+  },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} },
+};
+
+const state = {
+  items: [], categories: {}, horizons: {}, assets: {},
+  market: null,
+  days: LS.get('days', 1),
+  sort: LS.get('sort', 'score'),
+  group: LS.get('group', 'horizon'),
+  query: '',
+  cats: new Set(LS.get('cats', [])),
+  hideSeen: LS.get('hideSeen', false),
+  tier: LS.get('tier', 1),
+  seen: new Set(LS.get('seen', [])),
+  cursor: -1,
+  // Paging state, deliberately not persisted: each visit should start at the
+  // top of a short list, not wherever yesterday's reading ended up.
+  expanded: new Set(),
+  flatShown: 20,
+};
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const idOf = it => it.url || it.discussion_url || it.title;
+
+const EMPTY_REASONS = new Set(['baseline coverage', 'routine coverage']);
+
+const fmtAge = ts => {
+  if (!ts) return '';
+  const h = (Date.now() - new Date(ts).getTime()) / 3.6e6;
+  if (!isFinite(h)) return '';
+  if (h < 1) return Math.max(1, Math.round(h * 60)) + 'm';
+  if (h < 24) return Math.round(h) + 'h';
+  return Math.round(h / 24) + 'd';
+};
+
+// "Sep 24" rather than "2026-09-24": the year is never in question on a
+// four-month calendar, and the month name scans faster than a number.
+const fmtDay = iso => {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00Z');
+  return isNaN(d) ? iso : d.toLocaleDateString(undefined,
+    { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+
+const fmtNum = (v, d) => {
+  if (v == null) return '—';
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  // Thousands separators only above 10,000: below that they make a yield or a
+  // spread harder to read, not easier.
+  return Math.abs(n) >= 10000 ? n.toLocaleString(undefined, {maximumFractionDigits: 0})
+                              : n.toFixed(d == null ? 2 : d);
+};
+
+// A signed change, coloured only when the series has a direction that is
+// actually good or bad. Most of them do not: a rising dollar is not "bad", and
+// pretending otherwise is the most common way a macro dashboard misleads.
+function fmtChange(value, kind, good, decimals) {
+  if (value == null) return '<span class="flat">—</span>';
+  const n = Number(value);
+  const text = (n > 0 ? '+' : '') + (kind === 'abs' ? n.toFixed(Math.min(2, decimals ?? 2))
+                                                    : n.toFixed(1) + '%');
+  let cls = 'flat';
+  if (Math.abs(n) > 1e-9 && good === 'up') cls = n > 0 ? 'pos' : 'neg';
+  else if (Math.abs(n) > 1e-9 && good === 'down') cls = n > 0 ? 'neg' : 'pos';
+  else if (Math.abs(n) > 1e-9) cls = 'flat';
+  return `<span class="${cls}">${esc(text)}</span>`;
+}
+
+function sparkSvg(points, width = 92, height = 22) {
+  if (!points || points.length < 2) return '';
+  const values = points.map(p => p[1]);
+  let lo = Math.min(...values), hi = Math.max(...values);
+  if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+  const x = i => (i / (points.length - 1)) * (width - 2) + 1;
+  const y = v => height - 1 - ((v - lo) / (hi - lo)) * (height - 2);
+  const path = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join('');
+  // A zero line only when the series actually crosses zero - on a yield or an
+  // index it would be drawn off the bottom of the box and mean nothing.
+  const zero = (lo < 0 && hi > 0)
+    ? `<line x1="1" x2="${width - 1}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"
+             stroke="currentColor" stroke-width=".5" opacity=".35"/>` : '';
+  const last = points[points.length - 1];
+  return `<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
+    aria-hidden="true" style="color:var(--spark)">${zero}
+    <path d="${path}" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last[1]).toFixed(1)}" r="1.6"
+      fill="var(--accent)"/></svg>`;
+}
+
+// -- brief -----------------------------------------------------------------
+
+function renderBrief(market) {
+  const box = document.getElementById('brief-card');
+  const brief = market.brief || {};
+  const regime = market.regime || {};
+  if (!brief.lede && !regime.summary) {
+    box.innerHTML = `<div class="status">No brief yet. Run
+      <code>python -m finance.cli brief</code>.</div>`;
+    return;
+  }
+  const stance = regime.stance || '';
+  const cls = (regime.score || 0) > 1 ? 'pos' : (regime.score || 0) < -1 ? 'neg' : '';
+  const points = (brief.points || []).map(p => {
+    const label = p.label ? `<span class="tag">${esc(p.label)}</span>` : '';
+    const text = p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.text)}</a>`
+                       : esc(p.text);
+    return `<li>${label}${text}</li>`;
+  }).join('');
+  const tension = brief.tension || regime.tension || '';
+  const watch = (brief.watch || []).map(w =>
+    `<li><span class="tag">${w.estimated ? '~' : ''}${esc(fmtDay(w.on))}</span>${esc(w.title)}${
+      w.why ? ' — ' + esc(w.why) : ''}</li>`).join('');
+  box.innerHTML = `
+    ${stance ? `<div style="margin-bottom:7px"><span class="stance ${cls}">${esc(stance)}</span></div>` : ''}
+    <p class="lede">${esc(brief.lede || regime.summary)}</p>
+    ${points ? `<ul class="points">${points}</ul>` : ''}
+    ${tension ? `<div class="tension"><b>Where the reads disagree:</b> ${esc(tension)}</div>` : ''}
+    ${watch ? `<ul class="points" style="margin-top:10px">
+        <li style="border-top:0;color:var(--muted);font-size:11px;letter-spacing:.06em;
+                   text-transform:uppercase">What would change it</li>${watch}</ul>` : ''}`;
+  document.getElementById('brief-by').textContent =
+    brief.by ? `written by ${brief.by}, ${fmtAge(brief.generated_at)} ago` : '';
+  document.getElementById('disclaimer').textContent =
+    brief.disclaimer || (regime.disclaimer || '');
+}
+
+// -- regime ----------------------------------------------------------------
+
+function dial(score) {
+  const cls = score > 0 ? 'pos' : 'neg';
+  return '<span class="dial">' + [-2, -1, 1, 2].map(slot => {
+    const on = score > 0 ? (slot > 0 && slot <= score) : (slot < 0 && slot >= score);
+    return `<i class="${on ? 'on ' + cls : ''}"></i>`;
+  }).join('') + '</span>';
+}
+
+function renderRegime(market) {
+  const regime = market.regime || {};
+  const box = document.getElementById('regime-tiles');
+  box.innerHTML = (regime.reads || []).map(read => {
+    const evidence = (read.evidence || []).map(e => {
+      const change = (e.changes || {}).m1;
+      return `<div class="ev"><span class="en">${esc(e.label)}</span>
+        <span>${fmtNum(e.value, e.decimals)}${esc(e.unit)}</span></div>
+        ${e.note ? `<div class="ed">${esc(e.note)}</div>` : ''}`;
+    }).join('');
+    return `<div class="tile" data-read="${esc(read.id)}">
+      <div class="top">${dial(read.score)}<span class="name">${esc(read.label)}</span></div>
+      <div class="state">${esc(read.state)}</div>
+      <div class="detail">
+        <p><span class="k">Why it matters.</span> ${esc(read.why)}</p>
+        <p><span class="k">What this reading means.</span> ${esc(read.means)}</p>
+        ${evidence ? `<div style="margin:7px 0">${evidence}</div>` : ''}
+        <p><span class="k">Watch.</span> ${esc(read.watch)}</p>
+        ${(read.missing || []).length
+          ? `<p style="color:var(--warn)">Computed without: ${esc(read.missing.join(', '))}.</p>` : ''}
+      </div></div>`;
+  }).join('') || '<div class="status">No market data yet. Run <code>finance.cli data</code>.</div>';
+  box.onclick = event => {
+    const tile = event.target.closest('.tile');
+    if (tile) tile.classList.toggle('open');
+  };
+}
+
+// -- cross-asset -----------------------------------------------------------
+
+function renderSnapshot(market) {
+  const rows = market.snapshot || [];
+  const box = document.getElementById('snapshot');
+  if (!rows.length) {
+    box.innerHTML = `<div class="card"><div class="status">No price snapshot in this
+      export - the quote source was unavailable on the last run.</div></div>`;
+    return;
+  }
+  const groups = {equity: 'Equities', sector: 'Sectors', bond: 'Bonds & credit',
+                  commodity: 'Commodities'};
+  const cells = ['1d', '1w', '1m', '3m', 'ytd'];
+  let html = `<div class="card"><table><thead><tr><th>Asset</th>` +
+    cells.map(c => `<th class="${c === '3m' ? 'opt' : ''}">${c.toUpperCase()}</th>`).join('') +
+    `</tr></thead><tbody>`;
+  for (const [key, label] of Object.entries(groups)) {
+    const group = rows.filter(r => r.group === key);
+    if (!group.length) continue;
+    html += `<tr class="famhead"><td colspan="${cells.length + 1}">${esc(label)}</td></tr>`;
+    for (const row of group) {
+      html += `<tr><td>${esc(row.label)} <span class="sub">${esc(row.symbol)}</span></td>` +
+        cells.map(c => `<td class="num ${c === '3m' ? 'opt' : ''}">${
+          fmtChange((row.changes || {})[c], 'pct', 'up', 1)}</td>`).join('') + `</tr>`;
+    }
+  }
+  html += `</tbody></table>`;
+  const ratios = Object.entries(market.ratios || {});
+  if (ratios.length) {
+    html += `<table style="margin-top:12px"><thead><tr><th>Leadership</th>
+      <th>1M</th><th>3M</th><th class="opt">1Y</th></tr></thead><tbody>`;
+    for (const [pair, data] of ratios) {
+      html += `<tr class="metric" data-ratio="${esc(pair)}">
+        <td>${esc(data.label || pair)} <span class="sub">${esc(pair)}</span></td>
+        <td class="num">${fmtChange(data['1m'], 'pct', 'up', 1)}</td>
+        <td class="num">${fmtChange(data['3m'], 'pct', 'up', 1)}</td>
+        <td class="num opt">${fmtChange(data['1y'], 'pct', 'up', 1)}</td></tr>
+        <tr class="why" data-for="${esc(pair)}" hidden><td colspan="4">
+          <div class="whybox">${esc(data.why || '')}</div></td></tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+  box.innerHTML = html + `</div>`;
+  box.onclick = event => {
+    const row = event.target.closest('tr.metric');
+    if (!row) return;
+    const detail = box.querySelector(`tr.why[data-for="${row.dataset.ratio}"]`);
+    if (detail) detail.hidden = !detail.hidden;
+  };
+}
+
+// -- calendar --------------------------------------------------------------
+
+function renderCalendar(market) {
+  const events = (market.calendar || []).slice(0, 26);
+  const box = document.getElementById('cal-list');
+  if (!events.length) {
+    box.innerHTML = `<li><span class="ttl">No calendar in this export.</span></li>`;
+    return;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  box.innerHTML = events.map(e => {
+    const days = Math.round((new Date(e.on_date + 'T12:00:00Z') -
+                             new Date(today + 'T12:00:00Z')) / 864e5);
+    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days}d`;
+    const stars = '★'.repeat(Math.max(0, 4 - Number(e.importance)));
+    return `<li><span class="when ${days === 0 ? 'today' : ''}">
+        <b>${esc(e.on_date.slice(5))}</b> ${esc(when)}</span>
+      <span class="imp">${stars}</span>
+      <span class="ttl">${e.estimated ? '<span class="est">~</span> ' : ''}${esc(e.title)}
+        ${e.time_et ? `<span class="est">${esc(e.time_et)} ET</span>` : ''}
+        <span class="d">${esc(e.detail || '')}${
+          e.url ? ` <a href="${esc(e.url)}" target="_blank" rel="noopener">source</a>` : ''}</span>
+      </span></li>`;
+  }).join('');
+  box.onclick = event => {
+    const row = event.target.closest('li');
+    if (row && !event.target.closest('a')) row.classList.toggle('open');
+  };
+}
+
+// -- metrics ---------------------------------------------------------------
+
+function renderMetrics() {
+  const market = state.market;
+  if (!market) return;
+  const families = market.families || {};
+  const metrics = (market.metrics || []).filter(m => (m.tier || 3) <= state.tier);
+  const box = document.getElementById('metrics-table');
+  if (!metrics.length) {
+    box.innerHTML = `<div class="card"><div class="status">No metrics in this export.</div></div>`;
+    return;
+  }
+  const windows = ['1d', '1w', '1m', '3m', '6m', '1y'];
+  let html = `<div class="card"><table><thead><tr>
+    <th>Indicator</th><th>Latest</th>` +
+    windows.map(w => `<th class="${w === '1d' || w === '6m' ? 'opt' : ''}">${w}</th>`).join('') +
+    `<th class="opt">Percentile</th><th class="opt">Trend</th></tr></thead><tbody>`;
+  for (const [family, label] of Object.entries(families)) {
+    const group = metrics.filter(m => m.family === family);
+    if (!group.length) continue;
+    html += `<tr class="famhead"><td colspan="${windows.length + 4}">${esc(label)}</td></tr>`;
+    for (const m of group) {
+      const rank = m.pct_rank == null ? '' :
+        `<span class="rankbar" title="${m.pct_rank}th percentile of the last ${
+          m.lookback_years} years"><i style="left:${
+          Math.max(0, Math.min(96, m.pct_rank * 0.96))}%"></i></span>
+         <span class="sub">${Math.round(m.pct_rank)}</span>`;
+      html += `<tr class="metric" data-id="${esc(m.id)}">
+        <td>${esc(m.label)}</td>
+        <td class="num"><b>${fmtNum(m.value, m.decimals)}</b>
+          <span class="sub">${esc(m.unit)}</span></td>` +
+        windows.map(w => `<td class="num ${w === '1d' || w === '6m' ? 'opt' : ''}">${
+          fmtChange((m.changes || {})[w], m.change_kind, m.good, m.decimals)}</td>`).join('') +
+        `<td class="num opt">${rank}</td>
+         <td class="opt">${sparkSvg(m.spark)}</td></tr>
+        <tr class="why" data-for="${esc(m.id)}" hidden><td colspan="${windows.length + 4}">
+          <div class="whybox">
+            <p><span class="k">Why it matters.</span> ${esc(m.why)}</p>
+            <p><span class="k">Up means.</span> ${esc(m.up_means)}</p>
+            <p><span class="k">Down means.</span> ${esc(m.down_means)}</p>
+            <p><span class="k">Watch.</span> ${esc(m.watch)}</p>
+            <p class="sub">As of ${esc(m.as_of)} · ${esc(m.cadence)}${
+              m.z != null ? ` · z-score ${m.z > 0 ? '+' : ''}${m.z} over ${m.lookback_years}y` : ''}</p>
+          </div></td></tr>`;
+    }
+  }
+  box.innerHTML = html + `</tbody></table></div>`;
+  box.onclick = event => {
+    const row = event.target.closest('tr.metric');
+    if (!row) return;
+    const detail = box.querySelector(`tr.why[data-for="${row.dataset.id}"]`);
+    if (detail) detail.hidden = !detail.hidden;
+  };
+}
+
+// -- news ------------------------------------------------------------------
+
+function markSeen(it) {
+  state.seen.add(idOf(it));
+  // Unbounded growth would eventually blow the 5MB quota; a month of daily
+  // reading is a few thousand keys, so keep the newest 4000.
+  const keep = [...state.seen].slice(-4000);
+  state.seen = new Set(keep);
+  LS.set('seen', keep);
+}
+
+function withinWindow(it) {
+  if (!state.days) return true;
+  const ts = it.published_ts;
+  if (!ts) return true;  // undated is "current until proven otherwise"
+  return (Date.now() - new Date(ts).getTime()) <= state.days * 864e5;
+}
+
+function matchesQuery(it) {
+  if (!state.query) return true;
+  const hay = [it.title, it.source, it.summary, it.category, it.horizon,
+               (it.assets || []).join(' '), (it.tags || []).join(' ')].join(' ').toLowerCase();
+  return state.query.split(/\s+/).every(term => hay.includes(term));
+}
+
+function visible() {
+  return state.items.filter(it =>
+    withinWindow(it) && matchesQuery(it)
+    && (!state.cats.size || state.cats.has(it.category || 'other'))
+    && !(state.hideSeen && state.seen.has(idOf(it))));
+}
+
+function sortItems(rows) {
+  const key = state.sort;
+  return rows.slice().sort((a, b) => {
+    if (key === 'published_ts') return (b.published_ts || '').localeCompare(a.published_ts || '');
+    // Missing values sort last rather than as zero: "not measured" is not the
+    // same claim as "measured, and it was nothing".
+    const av = a[key] == null ? -1 : a[key], bv = b[key] == null ? -1 : b[key];
+    return bv - av || (b.impact || 0) - (a.impact || 0);
+  });
+}
+
+function alsoHtml(it) {
+  if (!it.also || !it.also.length) return '';
+  const links = it.also.filter(a => a.url).slice(0, 4).map(a =>
+    `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.source)}</a>`);
+  return links.length ? `<span class="dot"></span><span class="also">also: ${
+    links.join(', ')}</span>` : '';
+}
+
+function itemHtml(it) {
+  const seen = state.seen.has(idOf(it));
+  const score = it.score == null ? '—' : Math.round(it.score);
+  const impact = it.impact == null ? '' : Math.round(it.impact);
+  const link = it.url || it.discussion_url || '#';
+  const bits = [`<span class="src">${esc(it.source)}</span>`];
+  if ((it.tier || 3) <= 1) bits.push(`<span class="t1">primary</span>`);
+  if (it.published_ts) bits.push(`<span class="dot">${esc(fmtAge(it.published_ts))}</span>`);
+  const cat = state.categories[it.category];
+  if (cat) bits.push(`<span class="dot"><span class="mchip">${esc(cat)}</span></span>`);
+  for (const asset of (it.assets || []).slice(0, 3)) {
+    if (state.assets[asset]) bits.push(`<span class="mchip">${esc(state.assets[asset])}</span>`);
+  }
+  // The scorers' fallback strings say nothing, and repeating "baseline
+  // coverage" under two hundred rows is worse than saying nothing.
+  if (it.score_reason && !EMPTY_REASONS.has(it.score_reason.trim().toLowerCase()))
+    bits.push(`<span class="dot why">${esc(it.score_reason)}</span>`);
+  return `<article class="item${seen ? ' seen' : ''}" data-i="${it._i}">
+    <div class="scores">
+      <div class="sc${it.score != null && it.score < 50 ? ' low' : ''}"
+           title="relevance to your profile (${esc(it.scored_by || 'unscored')})">${score}</div>
+      <div class="im${impact !== '' && impact >= 60 ? ' hi' : ''}"
+           title="market impact: ${esc(it.impact_reason || '')}">${
+             impact === '' ? '' : '⇡' + impact}</div>
+    </div>
+    <div class="body">
+      <p class="title"><a href="${esc(link)}" target="_blank" rel="noopener">${esc(it.title)}</a></p>
+      <div class="meta">${bits.join(' ')}${alsoHtml(it)}</div>
+      ${it.summary ? `<div class="summary">${esc(it.summary)}</div>` : ''}
+    </div></article>`;
+}
+
+let rendered = [];
+const GROUP_LIMIT = 8;
+const FLAT_PAGE = 20;
+
+function moreButton(key, hidden) {
+  return `<button class="more" data-more="${esc(key)}">show ${hidden} more</button>`;
+}
+
+function renderNews() {
+  const rows = sortItems(visible());
+  rendered = rows;
+  rows.forEach((it, i) => { it._i = i; });
+  const list = document.getElementById('list');
+
+  if (!rows.length) {
+    list.innerHTML = `<p class="empty">Nothing matches. Widen the window or clear the filters.</p>`;
+  } else if (state.group && state.sort !== 'published_ts') {
+    // Grouping only makes sense when the ordering is a judgement. Under
+    // "Newest" the whole point is one continuous stream.
+    const isHorizon = state.group === 'horizon';
+    const labels = isHorizon ? state.horizons : state.categories;
+    const order = isHorizon ? ['months', 'week', 'day'] : Object.keys(state.categories);
+    const groups = new Map();
+    for (const it of rows) {
+      const key = (isHorizon ? it.horizon : it.category) || (isHorizon ? 'week' : 'other');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(it);
+    }
+    const ordered = [...groups.entries()].sort((a, b) => {
+      const ai = order.indexOf(a[0]), bi = order.indexOf(b[0]);
+      // Horizon has a meaningful fixed order (most durable first); categories
+      // do not, so those fall back to whichever had the strongest item.
+      if (isHorizon) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+      return (b[1][0].score || 0) - (a[1][0].score || 0);
+    });
+    list.innerHTML = ordered.map(([key, items]) => {
+      const open = state.expanded.has(key);
+      const shown = open ? items : items.slice(0, GROUP_LIMIT);
+      const hidden = items.length - shown.length;
+      return `<h3 class="group-head">${esc(labels[key] || key)} · ${items.length}</h3>` +
+        shown.map(itemHtml).join('') + (hidden ? moreButton(key, hidden) : '');
+    }).join('');
+  } else {
+    const shown = rows.slice(0, state.flatShown);
+    const hidden = rows.length - shown.length;
+    list.innerHTML = shown.map(itemHtml).join('') +
+      (hidden ? moreButton('', Math.min(hidden, FLAT_PAGE)) : '');
+  }
+
+  const unseen = rows.filter(it => !state.seen.has(idOf(it))).length;
+  document.getElementById('counts').textContent = `${rows.length} match · ${unseen} unread`;
+  renderChips();
+  restoreCursor();
+}
+
+function restoreCursor() {
+  if (state.cursor < 0) return;
+  const nodes = document.querySelectorAll('.item');
+  if (!nodes.length) return;
+  state.cursor = Math.min(state.cursor, nodes.length - 1);
+  nodes[state.cursor].classList.add('cursor');
+}
+
+function resetPaging() {
+  state.flatShown = FLAT_PAGE;
+  state.expanded.clear();
+  state.cursor = -1;
+}
+
+function renderChips() {
+  const counts = {};
+  state.items.filter(it => withinWindow(it) && matchesQuery(it))
+    .forEach(it => { const c = it.category || 'other'; counts[c] = (counts[c] || 0) + 1; });
+  // Taxonomy order, not count order: a filter you reach for daily should be in
+  // the same place every day.
+  const order = Object.keys(state.categories);
+  document.getElementById('cats').innerHTML = Object.entries(counts)
+    .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
+    .map(([cat, n]) => `<button class="chip" data-cat="${esc(cat)}"
+        aria-pressed="${state.cats.has(cat)}">${esc(state.categories[cat] || cat)}
+        <span class="n">${n}</span></button>`).join('');
+}
+
+// -- interaction -----------------------------------------------------------
+
+function moveCursor(delta) {
+  const nodes = [...document.querySelectorAll('.item')];
+  if (!nodes.length) return;
+  document.querySelectorAll('.item.cursor').forEach(n => n.classList.remove('cursor'));
+  state.cursor = Math.max(0, Math.min(nodes.length - 1, state.cursor + delta));
+  const node = nodes[state.cursor];
+  node.classList.add('cursor');
+  node.scrollIntoView({ block: 'nearest' });
+}
+
+function currentItem() {
+  const node = document.querySelector('.item.cursor');
+  return node ? rendered[+node.dataset.i] : null;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const it = currentItem();
+  if (e.key === 'j') { moveCursor(1); e.preventDefault(); }
+  else if (e.key === 'k') { moveCursor(-1); e.preventDefault(); }
+  else if (e.key === 'o' || e.key === 'Enter') {
+    if (it) { markSeen(it); window.open(it.url || it.discussion_url, '_blank', 'noopener');
+              renderNews(); }
+  } else if (e.key === 'm') {
+    if (it) { markSeen(it); renderNews(); }
+  } else if (e.key === ' ') {
+    const node = document.querySelector('.item.cursor');
+    if (node) { node.classList.toggle('open'); e.preventDefault(); }
+  }
+});
+
+document.getElementById('list').addEventListener('click', e => {
+  const more = e.target.closest('.more');
+  if (more) {
+    const key = more.dataset.more;
+    if (key) state.expanded.add(key); else state.flatShown += FLAT_PAGE;
+    renderNews();
+    return;
+  }
+  const node = e.target.closest('.item');
+  if (!node) return;
+  const it = rendered[+node.dataset.i];
+  if (e.target.closest('a')) {
+    // Opening it is what "read" means; re-rendering now would yank the list out
+    // from under the click, so just grey the row in place.
+    if (it) { markSeen(it); node.classList.add('seen'); }
+    return;
+  }
+  node.classList.toggle('open');
+});
+
+function seg(id, key, cast, after) {
+  document.getElementById(id).addEventListener('click', e => {
+    const button = e.target.closest('button');
+    if (!button) return;
+    state[key] = cast(button.dataset[key]);
+    LS.set(key, state[key]);
+    [...button.parentElement.children].forEach(b => b.setAttribute('aria-pressed', b === button));
+    resetPaging();
+    (after || renderNews)();
+  });
+}
+seg('window-seg', 'days', Number);
+seg('sort-seg', 'sort', String);
+seg('group-seg', 'group', String);
+seg('tier-seg', 'tier', Number, renderMetrics);
+
+document.getElementById('cats').addEventListener('click', e => {
+  const button = e.target.closest('.chip');
+  if (!button) return;
+  const cat = button.dataset.cat;
+  state.cats.has(cat) ? state.cats.delete(cat) : state.cats.add(cat);
+  LS.set('cats', [...state.cats]);
+  resetPaging();
+  renderNews();
+});
+
+let debounce;
+document.getElementById('q').addEventListener('input', e => {
+  clearTimeout(debounce);
+  debounce = setTimeout(() => {
+    state.query = e.target.value.trim().toLowerCase();
+    resetPaging();
+    renderNews();
+  }, 120);
+});
+
+const seenBox = document.getElementById('hide-seen');
+seenBox.checked = state.hideSeen;
+seenBox.addEventListener('change', () => {
+  state.hideSeen = seenBox.checked;
+  LS.set('hideSeen', state.hideSeen);
+  resetPaging();
+  renderNews();
+});
+
+function applyPrefs() {
+  for (const [id, key, cast] of [['window-seg', 'days', Number], ['sort-seg', 'sort', String],
+                                 ['group-seg', 'group', String], ['tier-seg', 'tier', Number]]) {
+    document.querySelectorAll(`#${id} button`).forEach(
+      b => b.setAttribute('aria-pressed', cast(b.dataset[key]) === state[key]));
+  }
+}
+
+// -- load ------------------------------------------------------------------
+// The two payloads load independently: a missing market.json must not take the
+// news down with it, and vice versa. They are separate files because the news
+// changes hourly and the metrics daily.
+
+fetch('data/market.json', { cache: 'no-cache' })
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(market => {
+    state.market = market;
+    renderBrief(market);
+    renderRegime(market);
+    renderSnapshot(market);
+    renderCalendar(market);
+    renderMetrics();
+  })
+  .catch(err => {
+    document.getElementById('brief-card').innerHTML =
+      `<div class="status error">Could not load data/market.json (${esc(err.message)}).
+       Run: python -m finance.cli data &amp;&amp; python -m finance.cli export --out-dir docs/data</div>`;
+  });
+
+fetch('data/items.json', { cache: 'no-cache' })
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(data => {
+    state.items = data.items || [];
+    state.categories = data.categories || {};
+    state.horizons = data.horizons || {};
+    state.assets = data.assets || {};
+    document.getElementById('generated').textContent =
+      data.generated_at ? 'updated ' + fmtAge(data.generated_at) + ' ago' : '';
+    document.getElementById('news-status').remove();
+    applyPrefs();
+    renderNews();
+  })
+  .catch(err => {
+    const status = document.getElementById('news-status');
+    status.className = 'status error';
+    status.textContent = `Could not load data/items.json (${err.message}). ` +
+      `Run: python -m finance.cli news && python -m finance.cli rank`;
+  });
+</script>
+</body>
+</html>
