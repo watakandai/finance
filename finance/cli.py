@@ -105,6 +105,10 @@ def main() -> None:
         help="also score against profile.md (needs the provider's API key)")
     rank_parser.add_argument("--provider", choices=sorted(ranking.PROVIDERS),
                              default="gemini")
+    rank_parser.add_argument(
+        "--fallback", default="",
+        help="comma-separated providers to try, in order, when --provider fails "
+             "(e.g. groq,ollama); ones without a key are skipped")
     rank_parser.add_argument("--model", default=None)
     rank_parser.add_argument("--profile", default=str(ranking.DEFAULT_PROFILE))
     rank_parser.add_argument(
@@ -123,6 +127,10 @@ def main() -> None:
     brief_parser.add_argument("--llm", action="store_true")
     brief_parser.add_argument("--provider", choices=sorted(ranking.PROVIDERS),
                               default="gemini")
+    brief_parser.add_argument(
+        "--fallback", default="",
+        help="comma-separated providers to try, in order, when --provider fails "
+             "(e.g. groq,ollama); ones without a key are skipped")
     brief_parser.add_argument("--model", default=None)
     brief_parser.add_argument("--profile", default=str(ranking.DEFAULT_PROFILE))
 
@@ -307,24 +315,46 @@ def _cmd_rank(args) -> None:
     summaries, series = _load_metrics(args.db)
     context = ranking.market_context(summaries, regime_mod.assess(summaries, series))
 
-    print(f"llm: sending {len(todo)} items to {args.provider}/{model} "
-          f"in batches of {args.batch_size}")
+    fallbacks = [p.strip() for p in args.fallback.split(",")
+                 if p.strip() and p.strip() != args.provider]
+    batch_no = 0
+
+    def on_provider(name, used_model, pending, note):
+        nonlocal batch_no
+        batch_no = 0
+        if used_model is None:
+            print(f"llm: {name} {note}")
+        elif note:
+            print(f"llm: {name}/{used_model} {note}")
+        else:
+            print(f"llm: sending {pending} items to {name}/{used_model} "
+                  f"in batches of {args.batch_size}")
 
     def progress(offset, size, note):
-        print(f"  batch {offset // args.batch_size + 1} ({size} items): {note}")
+        nonlocal batch_no
+        batch_no += 1
+        print(f"  batch {batch_no} ({size} items): {note}")
 
     try:
-        results = ranking.llm_scores(
-            todo, profile, provider=args.provider, model=model,
+        by_model = ranking.llm_scores_chain(
+            todo, profile, [args.provider, *fallbacks], model=model,
             batch_size=args.batch_size, min_interval=args.min_interval,
-            context=context, on_progress=progress,
+            context=context, on_progress=progress, on_provider=on_provider,
         )
     except (RuntimeError, ValueError) as exc:
         print(f"llm: SKIPPED ({exc})", file=sys.stderr)
         return
 
+    # The hash is the primary model's even for fallback scores: it marks the
+    # item as done for this profile, so tomorrow doesn't re-send it.
+    # scored_by keeps the truth about which model gave the score.
+    results = {}
+    for scored_by, got in by_model.items():
+        set_llm_results(args.db, got, scored_by, phash)
+        results.update(got)
+    if len(by_model) > 1:
+        print("llm: by model: " + ", ".join(f"{k} {len(v)}" for k, v in by_model.items()))
     if results:
-        set_llm_results(args.db, results, f"{args.provider}:{model}", phash)
         # Horizons the model changed feed back into impact, whose decay curve
         # depends on them - otherwise an item the model reclassified as
         # structural would keep decaying like tape.
@@ -344,19 +374,31 @@ def _cmd_brief(args) -> None:
     events = query_events(args.db, start=date.today().isoformat(), max_importance=2)
 
     if args.llm:
-        try:
-            profile = ranking.load_profile(args.profile)
-            written = briefing.llm_brief(
-                profile, reading, summaries, items, events,
-                provider=args.provider, model=args.model)
-            set_state(args.db, "brief", written)
-            print(f"brief: written by {written['by']} "
-                  f"({len(written['points'])} points)")
-            print(f"  {written['lede']}")
-            return
-        except Exception as exc:
-            print(f"brief: LLM failed ({type(exc).__name__}: {exc}) - falling "
-                  "back to the computed brief", file=sys.stderr)
+        # One prompt, so the chain is simply "next provider on failure". A
+        # fallback without a key is skipped; --model only applies to the first.
+        fallbacks = [p.strip() for p in args.fallback.split(",")
+                 if p.strip() and p.strip() != args.provider]
+        for n, name in enumerate([args.provider, *fallbacks]):
+            env_var = ranking.PROVIDERS[name][0]
+            if n and not os.environ.get(env_var, "").strip():
+                print(f"brief: {name} skipped ({env_var} not set)")
+                continue
+            try:
+                profile = ranking.load_profile(args.profile)
+                written = briefing.llm_brief(
+                    profile, reading, summaries, items, events,
+                    provider=name, model=args.model if n == 0 else None,
+                    timeout=ranking.PROVIDER_TIMEOUT.get(name, 120))
+                set_state(args.db, "brief", written)
+                print(f"brief: written by {written['by']} "
+                      f"({len(written['points'])} points)")
+                print(f"  {written['lede']}")
+                return
+            except Exception as exc:
+                print(f"brief: {name} failed ({type(exc).__name__}: {exc})",
+                      file=sys.stderr)
+        print("brief: every LLM failed - falling back to the computed brief",
+              file=sys.stderr)
 
     written = briefing.heuristic_brief(reading, items, events)
     set_state(args.db, "brief", written)
