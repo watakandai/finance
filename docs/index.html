@@ -134,7 +134,21 @@
   .badges { display:flex; gap:5px; flex-wrap:wrap; }
   .badge { background:var(--chip); border-radius:4px; padding:1px 7px; font-size:11px;
            color:var(--muted); }
-  .slinks { display:flex; gap:12px; font-size:12px; margin-top:auto; padding-top:2px; }
+  .slinks { display:flex; gap:12px; font-size:12px; margin-top:auto; padding-top:2px;
+            align-items:center; flex-wrap:wrap; }
+  .addbox { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 10px; }
+  .addbox input { width:180px; padding:6px 10px; font:inherit; font-size:13px; text-transform:uppercase;
+                  border:1px solid var(--border); border-radius:7px; background:var(--card); color:var(--text); }
+  .btn { border:1px solid var(--accent); background:var(--accent); color:#fff; font:inherit;
+         font-size:12.5px; padding:6px 12px; border-radius:7px; cursor:pointer; text-decoration:none; }
+  .btn.ghost { background:transparent; color:var(--accent); }
+  .btn:hover { filter:brightness(1.08); }
+  .linkbtn { background:none; border:0; color:var(--muted); font:inherit; font-size:12px;
+             cursor:pointer; padding:0; }
+  .linkbtn:hover { color:var(--down); }
+  .stock.local { border-style:dashed; }
+  #add-msg { font-size:12.5px; color:var(--muted); }
+  #add-msg.err { color:var(--down); }
   .slinks a { color:var(--accent); text-decoration:none; }
   .slinks a:hover { text-decoration:underline; }
 
@@ -412,7 +426,9 @@ const state = {
   mode: LS.get('mode', 'beginner'),
   items: [], categories: {}, horizons: {}, assets: {},
   market: null, stocks: null,
-  stockTab: LS.get('stockTab', 'trending'),
+  stockTab: LS.get('stockTab', ''),   // '' = decide once the data is in
+  myTickers: LS.get('myTickers', []),
+  listing: null,
   days: LS.get('days', 3),
   sort: LS.get('sort', 'score'),
   group: LS.get('group', 'horizon'),
@@ -729,6 +745,7 @@ document.getElementById('regime-tiles').addEventListener('click', e => {
 // -- stocks ----------------------------------------------------------------
 
 const STOCK_TABS = [
+  ['watchlist', 'My watchlist'],
   ['trending', 'Trending'],
   ['dipping', 'Popular, but falling'],
   ['tech', 'Popular with tech people'],
@@ -751,17 +768,28 @@ function renderStocks() {
   const grid = document.getElementById('stock-grid');
   if (!data) return;
   const lists = data.lists || {};
+  lists.watchlist = lists.watchlist || [];
+  if (!state.stockTab) {
+    // First visit: open on your own list if you have one.
+    state.stockTab = (lists.watchlist.length || state.myTickers.length) ? 'watchlist' : 'trending';
+  }
   if (!lists[state.stockTab]) state.stockTab = 'trending';
+  const counts = { ...Object.fromEntries(Object.entries(lists).map(([k, v]) => [k, v.length])),
+                   watchlist: watchSymbols().length };
   document.getElementById('stock-tabs').innerHTML = STOCK_TABS.map(([key, label]) =>
     `<button class="tab" data-tab="${key}" aria-pressed="${key === state.stockTab}">${esc(label)}
-      <span class="n">${(lists[key] || []).length}</span></button>`).join('');
+      <span class="n">${counts[key] || 0}</span></button>`).join('');
   const note = (data.notes || {})[state.stockTab] || {};
   document.getElementById('stock-note').innerHTML = note.what ? `
     <p class="lead" style="margin-bottom:8px">${g(note.what)}</p>
     <div class="callout warn" style="margin:0 0 12px"><b>Read this first:</b> ${g(note.careful)}</div>` : '';
-  const rows = lists[state.stockTab] || [];
-  grid.innerHTML = rows.length ? rows.map(stockCard).join('')
-    : '<div class="status">Nothing on this list today.</div>';
+  if (state.stockTab === 'watchlist') {
+    renderWatchlist(lists.watchlist, grid);
+  } else {
+    const rows = lists[state.stockTab] || [];
+    grid.innerHTML = rows.length ? rows.map(stockCard).join('')
+      : '<div class="status">Nothing on this list today.</div>';
+  }
   const asof = data.data_as_of ? `Data from ${fmtAge(data.data_as_of)} ago. ` : '';
   document.getElementById('stock-asof').textContent = asof +
     'Prices and company data from Nasdaq; discussion from Stocktwits, Reddit (via ApeWisdom) and Hacker News.';
@@ -769,7 +797,9 @@ function renderStocks() {
 
 function stockCard(r) {
   const used = new Set();
-  const size = SIZE_WORDS[r.size] ? `${SIZE_WORDS[r.size]} ${SECTOR_NOUN[r.sector] || 'company'}` : '';
+  // A fund has no market cap, and "a very small company, worth $0" would be wrong twice.
+  const size = SIZE_WORDS[r.size] && r.market_cap
+    ? `${SIZE_WORDS[r.size]} ${SECTOR_NOUN[r.sector] || 'company'}` : '';
   const moves = [];
   if (r.pct_today != null) moves.push(`<span><span class="lbl">Today</span> ${pct(r.pct_today)}</span>`);
   if (r.chg_1m != null) moves.push(`<span><span class="lbl">1 month</span> ${pct(r.chg_1m)}</span>`);
@@ -792,6 +822,145 @@ function stockCard(r) {
     <div class="slinks"><a href="${nasdaq}" target="_blank" rel="noopener">Chart &amp; details ↗</a></div>
   </article>`;
 }
+
+// -- watchlist -------------------------------------------------------------
+// Two tiers, because the page is static. A ticker typed here is kept in this
+// browser and shown at once from listing.json (today's price for every US
+// stock). "Track daily" puts it in watchlist.json via a GitHub workflow, and
+// from then on the daily job builds it a full card like every other list.
+
+// owner/repo, from the GitHub Pages address (owner.github.io/repo/...).
+const REPO = (() => {
+  const m = location.hostname.match(/^([\w-]+)\.github\.io$/);
+  const repo = location.pathname.split('/').filter(Boolean)[0];
+  return m && repo ? `${m[1]}/${repo}` : 'watakandai/finance';
+})();
+const WATCH_WORKFLOW = `https://github.com/${REPO}/actions/workflows/watchlist.yml`;
+const SYMBOL_OK = /^[A-Z][A-Z0-9]{0,5}(?:[./-][A-Z0-9]{1,2})?$/;
+
+function serverSymbols() { return (state.stocks && state.stocks.watchlist) || []; }
+function watchSymbols() {
+  const server = serverSymbols();
+  return server.concat(state.myTickers.filter(s => !server.includes(s)));
+}
+
+function loadListing() {
+  if (state.listing) return Promise.resolve(state.listing);
+  return load('data/listing.json').then(data => {
+    const rows = {};
+    for (const r of data.rows || []) {
+      rows[r[0]] = { symbol: r[0], name: r[1], price: r[2], pct_today: r[3], market_cap: r[4], sector: r[5] };
+    }
+    state.listing = rows;
+    return rows;
+  }).catch(() => (state.listing = {}));
+}
+
+function listingRow(symbol) {
+  const rows = state.listing || {};
+  return rows[symbol] || rows[symbol.replace('.', '/')] || null;
+}
+
+function capText(cap) {
+  if (!cap) return '';
+  for (const [unit, word] of [[1e12, 'trillion'], [1e9, 'billion'], [1e6, 'million']]) {
+    if (cap >= unit) { const v = cap / unit; return `$${v < 100 ? v.toFixed(1) : v.toFixed(0)} ${word}`; }
+  }
+  return '';
+}
+function sizeWord(cap) {
+  return cap >= 200e9 ? 'giant' : cap >= 10e9 ? 'large' : cap >= 2e9 ? 'mid-size' : cap >= 3e8 ? 'small' : 'tiny';
+}
+
+function localCard(symbol) {
+  const r = listingRow(symbol);
+  const track = `<a class="btn ghost" href="${WATCH_WORKFLOW}" target="_blank" rel="noopener"
+      title="Opens GitHub: click 'Run workflow', choose add, type ${esc(symbol)}">Track daily ↗</a>`;
+  const remove = `<button class="linkbtn" data-unwatch="${esc(symbol)}">remove</button>`;
+  if (!r && !Object.keys(state.listing || {}).length) {
+    // The listing itself did not load (it first appears after a daily update).
+    return `<article class="stock local"><div class="shead"><span class="sym">${esc(symbol)}</span>
+      <span class="nm">Saved on this device</span></div>
+      <div class="what">Today's price isn't available here yet. Track it daily and it will
+        be checked and filled in on the next update.</div>
+      <div class="slinks">${track}${remove}</div></article>`;
+  }
+  if (!r) {
+    return `<article class="stock local"><div class="shead"><span class="sym">${esc(symbol)}</span>
+      <span class="nm">Not in today's stock listing</span></div>
+      <div class="what">If it's a fund (ETF) like VOO, that's expected - funds aren't in the
+        stock listing. Track it daily and it will be checked and filled in on the next update.</div>
+      <div class="slinks">${track}${remove}</div></article>`;
+  }
+  const noun = SECTOR_NOUN[r.sector] || 'company';
+  const size = r.market_cap ? `A ${sizeWord(r.market_cap)} ${noun}, worth ${capText(r.market_cap)}.` : '';
+  return `<article class="stock local"><div class="shead"><span class="sym">${esc(symbol)}</span>
+      <span class="nm" title="${esc(r.name)}">${esc(r.name)}</span></div>
+    <div class="what">${esc(size)}</div>
+    <div class="moves"><span><b>${fmtPrice(r.price)}</b></span>
+      <span><span class="lbl">Today</span> ${pct(r.pct_today)}</span></div>
+    <div class="why"><span class="src">Saved on this device only, so you just see today's
+      price. Track it daily for its history, news and who's talking about it.</span></div>
+    <div class="slinks">${track}${remove}</div></article>`;
+}
+
+function renderWatchlist(rows, grid) {
+  const server = serverSymbols();
+  const local = state.myTickers.filter(s => !server.includes(s));
+  const addBox = `<form class="addbox" id="add-form" style="grid-column:1/-1">
+      <input id="add-input" placeholder="Ticker, e.g. NET or VOO" autocomplete="off" spellcheck="false"
+             aria-label="Ticker symbol to add">
+      <button class="btn" type="submit">Add</button>
+      <span id="add-msg"></span></form>`;
+  const tracked = rows.map(r => stockCard(r).replace('</article>',
+    `<div class="slinks" style="padding-top:0"><a class="linkbtn" href="${WATCH_WORKFLOW}" target="_blank"
+       rel="noopener" title="Opens GitHub: click 'Run workflow', choose remove, type ${esc(r.symbol)}">stop tracking ↗</a></div></article>`)).join('');
+  // Symbols in watchlist.json that the daily job has not built a card for yet.
+  const pending = server.filter(sym => !rows.some(r => r.symbol === sym)).map(sym =>
+    `<article class="stock local"><div class="shead"><span class="sym">${esc(sym)}</span>
+      <span class="nm">Tracked - waiting for the next update</span></div>
+      <div class="what">It's on your watchlist; its full card appears after the next daily update.</div></article>`).join('');
+  const empty = !rows.length && !local.length && !pending
+    ? `<div class="status" style="grid-column:1/-1">Nothing here yet. Type a ticker above - a company
+       like NET (Cloudflare) or a fund like VOO (the S&P 500).</div>` : '';
+  grid.innerHTML = addBox + tracked + pending + local.map(localCard).join('') + empty;
+  if (local.length && !state.listing) loadListing().then(() => { if (state.stockTab === 'watchlist') renderStocks(); });
+}
+
+document.getElementById('stock-grid').addEventListener('submit', e => {
+  if (e.target.id !== 'add-form') return;
+  e.preventDefault();
+  const input = document.getElementById('add-input');
+  const msg = document.getElementById('add-msg');
+  const symbol = input.value.trim().toUpperCase().replace(/^\$/, '');
+  if (!SYMBOL_OK.test(symbol)) {
+    msg.className = 'err';
+    msg.textContent = 'That doesn\'t look like a ticker. Tickers are short codes like NET or BRK.B.';
+    return;
+  }
+  if (watchSymbols().includes(symbol)) {
+    msg.className = '';
+    msg.textContent = `${symbol} is already on your watchlist.`;
+    return;
+  }
+  loadListing().then(() => {
+    state.myTickers = state.myTickers.concat([symbol]);
+    LS.set('myTickers', state.myTickers);
+    renderStocks();
+    const found = listingRow(symbol);
+    const m = document.getElementById('add-msg');
+    m.className = '';
+    m.textContent = found ? `Added ${symbol} (${found.name}).` : `Added ${symbol}.`;
+  });
+});
+
+document.getElementById('stock-grid').addEventListener('click', e => {
+  const button = e.target.closest('[data-unwatch]');
+  if (!button) return;
+  state.myTickers = state.myTickers.filter(s => s !== button.dataset.unwatch);
+  LS.set('myTickers', state.myTickers);
+  renderStocks();
+});
 
 document.getElementById('stock-tabs').addEventListener('click', e => {
   const tab = e.target.closest('.tab');

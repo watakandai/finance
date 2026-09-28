@@ -1,0 +1,70 @@
+name: Edit watchlist
+
+# The "Track daily" button on the page leads here: Actions -> Edit watchlist ->
+# Run workflow, type the tickers, done. It edits watchlist.json and rebuilds just
+# the stock lists - a couple of minutes, rather than the full daily run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Add or remove'
+        required: true
+        type: choice
+        options: ['add', 'remove']
+        default: 'add'
+      tickers:
+        description: 'Tickers, separated by commas or spaces (e.g. NET, VOO)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Shares the daily run's group: both commit files under docs/data/, and two
+# overlapping pushes would make the second one fail.
+concurrency:
+  group: daily-fetch
+  cancel-in-progress: false
+
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Inputs arrive through the environment, never interpolated into the
+      # script, and the CLI validates every symbol's format and checks it with
+      # Nasdaq before writing it.
+      - name: Update watchlist.json
+        env:
+          ACTION: ${{ inputs.action }}
+          TICKERS: ${{ inputs.tickers }}
+        run: python -m finance.cli watch "$ACTION" "$TICKERS"
+
+      # Read-only restore of the daily database, so price history is fetched
+      # incrementally. Never saved from here: the daily run owns that cache.
+      - name: Restore database
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/finance.db
+          key: finance-db-watchlist-${{ github.run_id }}
+          restore-keys: finance-db-
+
+      # Allowed to fail: a blocked data source must not lose the watchlist edit,
+      # and tomorrow's daily run rebuilds the lists anyway.
+      - name: Rebuild the stock lists
+        continue-on-error: true
+        run: |
+          python -m finance.cli --db /tmp/finance.db stocks
+          python -m finance.cli --db /tmp/finance.db export --out-dir docs/data
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Watchlist: ${{ inputs.action }} ${{ inputs.tickers }}'
+          file_pattern: watchlist.json docs/data/stocks.json docs/data/listing.json

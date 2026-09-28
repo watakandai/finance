@@ -197,7 +197,10 @@ def test_stocks_json_ships_even_before_any_stock_data_exists(store, tmp_path):
     cli._cmd_rank(args(db=str(store)))
     cli._cmd_export(args(db=str(store), out_dir=str(out_dir)))
     payload = json.loads((out_dir / "stocks.json").read_text())
-    assert set(payload["lists"]) == {"trending", "dipping", "tech"}
+    assert set(payload["lists"]) == {"watchlist", "trending", "dipping", "tech"}
+    assert isinstance(payload["watchlist"], list)
+    listing = json.loads((out_dir / "listing.json").read_text())
+    assert listing["fields"][0] == "symbol" and listing["rows"] == []
     assert all(payload["notes"][k]["careful"] for k in payload["lists"])
 
 

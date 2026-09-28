@@ -52,6 +52,16 @@ MIN_HN_STORIES = 3
 RETAIL_POPULAR_RANK = 30
 
 LIST_NOTES = {
+    "watchlist": {
+        "title": "My watchlist",
+        "what": "Tickers you chose to follow, checked every day: how the price is "
+                "moving, how far it is from its high of the past year, the most "
+                "relevant recent headline, and whether investors or engineers are "
+                "talking about it.",
+        "careful": "Watching a stock closely makes every move feel important. Most "
+                   "daily moves are noise - the one-month change and the headline "
+                   "tell you far more than today's number.",
+    },
     "trending": {
         "title": "Trending right now",
         "what": "The stocks individual investors are talking about most today, on "
@@ -78,7 +88,11 @@ LIST_NOTES = {
         "what": "Companies software engineers are writing about on Hacker News "
                 "this month - mostly businesses that sell to developers and other "
                 "companies, so most people have never heard of them - and that "
-                "the retail stock forums are not talking about.",
+                "the retail stock forums are not talking about. Most come from a "
+                "hand-picked list of tech companies. Ones marked \"found "
+                "automatically\" come from a search of every listed tech company "
+                "and recent tech IPO - check the headline shown to confirm it is "
+                "really about the company.",
         "careful": "Engineers talk about products, outages and technology, not "
                    "about whether a stock is fairly priced. A company can have a "
                    "product developers love and still be a poor investment - or "
@@ -402,6 +416,121 @@ def candidates(screener: dict, stocktwits: list, reddit: list, hn: dict,
     return out
 
 
+# ------------------------------------------------------------- discovery
+#
+# tech_universe.json is precise but closed: a company engineers start talking
+# about that nobody wrote into it can never appear. Discovery closes the gap by
+# searching Hacker News for every technical listed company, plus every recent
+# tech IPO - the names a hand-written list cannot know yet.
+#
+# Two earlier versions of this were thrown away, and the reasons are the design:
+#
+# - Scanning a month of headlines for all ~7,000 listed names matched ordinary
+#   words and people: its top "tech favourites" were Trump Media (from
+#   "Trump"), Union Pacific ("union") and a coal miner ("Alpha").
+# - Restricting to technical sectors with a capitalisation test still passed
+#   "Graham" (Paul Graham) and "Opera" (a cartoon title).
+#
+# What survives is a per-company search with two checks computed from the
+# search results themselves (see social.count_mentions): the name must stand
+# alone rather than inside a longer proper noun, and must not be mostly used as
+# a lower-case word. Anything found this way is labelled on the page with the
+# headline that triggered it, so a reader can judge the match.
+
+# Which listed companies discovery considers. Technology and telecom outright;
+# any other sector only when its industry is technical (chips, aerospace,
+# instruments, machinery - robotics and space companies live there).
+DISCOVERY_SECTORS = {"Technology", "Telecommunications"}
+DISCOVERY_INDUSTRY_RE = __import__("re").compile(
+    r"electr|semicond|aerospace|computer|software|machinery|instrument|"
+    r"telecom|internet|data processing", __import__("re").I)
+# Established companies need real size to be worth a look; a new listing is
+# interesting smaller, because it has not had time to grow into the index.
+DISCOVERY_MIN_CAP = 1e9
+IPO_MIN_CAP = 3e8
+# Generic trailing words that headlines drop: "Silicon Motion Technology" is
+# written "Silicon Motion". Stripped only while two words remain - "Spectrum"
+# alone is a word, "Silicon Motion" is a name.
+NAME_TAIL_WORDS = {"international", "technologies", "technology", "systems",
+                   "software", "networks", "solutions", "labs", "platforms",
+                   "semiconductor", "semiconductors", "communications",
+                   "holdings", "group", "global", "worldwide", "enterprises"}
+# Proper nouns that are company names but mostly mean something else on HN.
+DISCOVERY_STOPWORDS = {
+    "america", "american", "apollo", "atlas", "mercury", "phoenix", "genesis",
+    "orion", "nova", "titan", "summit", "pioneer", "frontier", "liberty", "eagle",
+    "delta", "quantum", "integer", "strategy", "match", "block", "bandwidth",
+    "national", "global", "united", "general", "first", "federal", "public",
+}
+# What a discovered company must show. Higher than the curated list's floor,
+# because a person has not checked the name.
+DISCOVERY_MIN_STORIES = 3
+DISCOVERY_MIN_POINTS = 30
+
+
+def search_name(name: str) -> str:
+    words = name.split()
+    while len(words) > 2 and words[-1].lower() in NAME_TAIL_WORDS:
+        words = words[:-1]
+    return " ".join(words)
+
+
+def _technical(row: dict) -> bool:
+    return bool(row.get("sector") in DISCOVERY_SECTORS
+                or DISCOVERY_INDUSTRY_RE.search(row.get("industry") or ""))
+
+
+def discovery_candidates(screener: dict, universe: dict, ipos: list = None) -> list:
+    """[{ticker, query, ipo}] - listed tech companies the universe does not cover.
+
+    One entry per company (Alphabet trades as GOOG and GOOGL; the busier share
+    class wins), recent IPOs first so they survive any cap on the list.
+    """
+    ipo_dates = {i["symbol"]: i.get("priced", "") for i in (ipos or [])}
+    by_name = {}
+    for row in screener.values():
+        symbol = row["symbol"]
+        cap = row.get("market_cap", 0)
+        is_ipo = symbol in ipo_dates
+        name = search_name(row.get("name") or "")
+        if (symbol in universe or not _technical(row) or len(name) < 4
+                or name.lower() in DISCOVERY_STOPWORDS
+                or cap < (IPO_MIN_CAP if is_ipo else DISCOVERY_MIN_CAP)):
+            continue
+        best = by_name.get(name)
+        if best is None or row.get("volume", 0) > screener[best["ticker"]].get("volume", 0):
+            by_name[name] = {"ticker": symbol, "query": name, "ipo": ipo_dates.get(symbol, "")}
+    return sorted(by_name.values(), key=lambda c: (c["ticker"] not in ipo_dates, c["query"]))
+
+
+def accept_discovered(counts: dict) -> bool:
+    """Whether an automatically-searched company really is being talked about."""
+    standalone = counts.get("standalone", 0)
+    return (standalone >= DISCOVERY_MIN_STORIES
+            and counts.get("standalone_points", 0) >= DISCOVERY_MIN_POINTS
+            and counts.get("lower", 0) * 3 <= standalone)
+
+
+def discovered(counts_by_ticker: dict, candidates: list) -> dict:
+    """{ticker: counts} for the candidates that pass, tagged as automatic."""
+    ipo = {c["ticker"]: c.get("ipo", "") for c in candidates}
+    out = {}
+    for ticker, counts in counts_by_ticker.items():
+        if ticker in ipo and accept_discovered(counts):
+            out[ticker] = {**counts, "found": "auto", "ipo": ipo[ticker],
+                           # Report the conservative numbers, not the raw ones.
+                           "stories": counts["standalone"],
+                           "points": counts["standalone_points"]}
+    return out
+
+
+def _month(iso: str) -> str:
+    try:
+        return date.fromisoformat(iso).strftime("%b %Y")
+    except ValueError:
+        return iso
+
+
 def tech_favourites(screener: dict, histories: dict, hn: dict, reddit: list,
                     universe: dict, limit: int = 10, today: date = None) -> list:
     """Companies engineers write about that Wall Street's retail crowd doesn't.
@@ -426,8 +555,10 @@ def tech_favourites(screener: dict, histories: dict, hn: dict, reddit: list,
         attention = counts["stories"] + 3.0 * math.log1p(counts.get("points", 0))
         facts = stock_facts(screener[symbol], histories.get(symbol, []), today)
         headline = counts.get("top_title") or ""
+        auto = counts.get("found") == "auto"
         facts.update({
             "list": "tech",
+            "found": "auto" if auto else "curated",
             "attention": round(attention, 1),
             "why": (f"In {counts['stories']} Hacker News headlines this month"
                     + (f"; the most discussed: “{headline}”" if headline else "")
@@ -435,7 +566,9 @@ def tech_favourites(screener: dict, histories: dict, hn: dict, reddit: list,
             "why_source": "Hacker News",
             "why_url": counts.get("top_url") or "",
             "badges": [f"{counts['stories']} HN stories",
-                       f"{counts.get('points', 0):,} points"],
+                       f"{counts.get('points', 0):,} points"]
+                      + ([f"listed {_month(counts['ipo'])}"] if counts.get("ipo") else [])
+                      + (["found automatically"] if auto else []),
             "what": (universe.get(symbol) or {}).get("what", ""),
         })
         rows.append(facts)
@@ -461,8 +594,85 @@ def attach_news(rows: list, items: list) -> list:
     return rows
 
 
+def synthetic_row(entry: dict, history: list) -> dict:
+    """A screener-shaped row for a symbol the stock screener does not carry.
+
+    That is every ETF, which is the likeliest thing a beginner adds. Price and
+    today's move come from the last two closes; there is no market cap for a
+    fund, so it gets none rather than a made-up one.
+    """
+    last = history[-1][1] if history else None
+    prev = history[-2][1] if len(history) >= 2 else None
+    return {
+        "symbol": entry["symbol"],
+        "name": entry.get("name") or entry["symbol"],
+        "price": last,
+        "pct_today": _pct(last, prev),
+        "market_cap": 0,
+        "sector": "Fund" if entry.get("kind") == "etf" else "",
+        "industry": "",
+    }
+
+
+def screener_key(symbol: str, screener: dict) -> str:
+    """The screener writes share classes as BRK/B; people type BRK.B."""
+    if symbol in screener:
+        return symbol
+    alt = symbol.replace(".", "/")
+    return alt if alt in screener else ""
+
+
+def watchlist_rows(entries: list, screener: dict, histories: dict, stocktwits: list,
+                   reddit: list, hn: dict, universe: dict = None,
+                   today: date = None) -> list:
+    """A full card for every ticker on the reader's own list, in their order.
+
+    No filters: the reader chose these, so every one is shown whatever it did.
+    The badges say where attention is, if anywhere, which is itself informative
+    - a holding nobody is discussing is usually a calm one.
+    """
+    universe = universe or {}
+    twits = {t["symbol"]: t for t in stocktwits}
+    reds = {r["symbol"]: r for r in clean_reddit(reddit)}
+    out = []
+    for entry in entries:
+        symbol = entry["symbol"]
+        key = screener_key(symbol, screener)
+        history = histories.get(symbol) or histories.get(key) or []
+        base = dict(screener[key]) if key else synthetic_row(entry, history)
+        base["symbol"] = symbol
+        facts = stock_facts(base, history, today)
+        badges = []
+        if entry.get("kind") == "etf":
+            badges.append("fund (ETF)")
+        twit = twits.get(symbol) or twits.get(key)
+        if twit:
+            badges.append(f"#{twit['rank']} trending on Stocktwits")
+        red = reds.get(symbol) or reds.get(key)
+        if red and red["mentions"] >= MIN_REDDIT_MENTIONS:
+            badges.append(_reddit_badge(red))
+        counts = hn.get(symbol) or hn.get(key) or {}
+        if counts.get("stories"):
+            badges.append(f"{counts['stories']} Hacker News stories this month")
+        what = (universe.get(symbol) or universe.get(key) or {}).get("what", "")
+        if not what and entry.get("kind") == "etf":
+            what = "A fund (ETF): one purchase buys a basket of many stocks or bonds."
+        facts.update({
+            "list": "watchlist",
+            "why": (twit or {}).get("summary") or "",
+            "why_source": "Stocktwits" if (twit or {}).get("summary") else "",
+            "badges": badges,
+            "what": what,
+            "kind": entry.get("kind", "stock"),
+            "added": entry.get("added", ""),
+        })
+        out.append(facts)
+    return out
+
+
 def build(screener: dict, histories: dict, stocktwits: list, reddit: list,
-          hn: dict, universe: dict, items: list = None, today: date = None) -> dict:
+          hn: dict, universe: dict, items: list = None, today: date = None,
+          watchlist: list = None) -> dict:
     """All three lists plus the notes that explain them - the stocks.json body.
 
     `items` is recent news (dicts with title/url/source/impact), used only to
@@ -473,6 +683,9 @@ def build(screener: dict, histories: dict, stocktwits: list, reddit: list,
     return {
         "notes": LIST_NOTES,
         "lists": {
+            "watchlist": attach_news(watchlist_rows(
+                watchlist or [], screener, histories, stocktwits, reddit, hn,
+                universe, today=today), items),
             "trending": attach_news(trending(screener, histories, stocktwits, reddit,
                                              universe, today=today), items),
             "dipping": attach_news(dipping(screener, histories, stocktwits, reddit,

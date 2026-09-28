@@ -31,6 +31,7 @@ from .base import BROWSER_AGENT, get_json
 
 SCREENER_URL = ("https://api.nasdaq.com/api/screener/stocks"
                 "?tableonly=true&limit=10000&download=true")
+IPO_URL = "https://api.nasdaq.com/api/ipo/calendar?date={month}"
 HISTORY_URL = ("https://api.nasdaq.com/api/quote/{sym}/historical"
                "?assetclass={cls}&fromdate={start}&limit={limit}")
 HEADERS = {
@@ -96,7 +97,8 @@ _NAME_TAIL = (
     " american depositary shares", " american depositary share", " ads",
     " class a common stock", " class b common stock", " class c capital stock",
     " class a ordinary shares", " ordinary shares", " common stock",
-    " common shares", " capital stock", " depositary shares",
+    " common shares", " capital stock", " depositary shares", " sponsored",
+    " series a", " series b", " series c", " adr",
 )
 _NAME_SUFFIX = (
     ", inc.", " inc.", " inc", ", corp.", " corp.", " corporation", " corp",
@@ -132,6 +134,56 @@ def _num(value):
         return float(text)
     except ValueError:
         return None
+
+
+# --------------------------------------------------------------------- IPOs
+
+# Blank-cheque shells: companies that exist only to buy another company, and
+# whose units trade under a U/W/R suffix. They are most of the IPO calendar by
+# count and none of it by interest.
+SPAC_RE = __import__("re").compile(
+    r"acquisition|merger|blank check|capital (?:corp|investment)|spac\b", __import__("re").I)
+
+
+def recent_ipos(months: int = 12, today: date = None, timeout: int = 25,
+                pause: float = 0.3, sleep=time.sleep) -> list:
+    """[{symbol, name, priced}] for operating companies that listed recently.
+
+    A hand-written list of tech companies cannot know about one that listed
+    last month, so this is how new names reach the tech-favourites search.
+    """
+    today = today or date.today()
+    out, seen = [], set()
+    year, month = today.year, today.month
+    for i in range(months):
+        if i and pause:
+            sleep(pause)
+        data = _get(IPO_URL.format(month=f"{year}-{month:02d}"), timeout, sleep)
+        out.extend(r for r in parse_ipos(data) if r["symbol"] not in seen
+                   and not seen.add(r["symbol"]))
+        month -= 1
+        if month == 0:
+            year, month = year - 1, 12
+    return out
+
+
+def parse_ipos(data: dict) -> list:
+    rows = ((((data or {}).get("data") or {}).get("priced") or {}).get("rows")) or []
+    out = []
+    for row in rows:
+        symbol = (row.get("proposedTickerSymbol") or "").strip().upper()
+        name = (row.get("companyName") or "").strip()
+        if not symbol or not name or SPAC_RE.search(name):
+            continue
+        if len(symbol) >= 5 and symbol[-1] in "UWR":
+            continue  # a unit, warrant or right, not the shares themselves
+        try:
+            priced = datetime.strptime((row.get("pricedDate") or "").strip(), "%m/%d/%Y").date()
+        except ValueError:
+            priced = None
+        out.append({"symbol": symbol, "name": clean_name(name),
+                    "priced": priced.isoformat() if priced else ""})
+    return out
 
 
 # ------------------------------------------------------------------ history

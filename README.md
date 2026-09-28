@@ -18,7 +18,7 @@ pulls three things that have to be read together and puts them on one page:
   week was published weeks ago.
 - **Which stocks people are watching.** Three daily lists - trending, popular
   but falling, and popular with tech people - each stock shown with *why* it is
-  on the list.
+  on the list, plus **your own watchlist** of any stock or fund.
 
 Then it ranks the news against all of it, on two separate axes: **market
 impact** (how big a deal is this for anyone) and **relevance** (would *you*,
@@ -343,11 +343,25 @@ the reason it passed.
 | --- | --- |
 | **Trending** | Stocktwits' 30 most-discussed symbols (US stocks only — ETFs and crypto drop out), each with Stocktwits' summary of *why*; plus any stock whose Reddit mentions at least doubled in a day. |
 | **Popular, but falling** | A stock with a reason to be well known — trending, a Reddit top-30, one of the ~40 largest listed companies, or frequent in Hacker News titles — that is down 10%+ this month, or 15%+ below its 52-week high *and still falling*. A stock recovering from an old peak is not a dip, and is not listed. |
-| **Popular with tech people** | Companies from [`finance/tech_universe.json`](finance/tech_universe.json) in at least three Hacker News titles this month that are not household consumer brands, not worth $150 billion or more, and not a Reddit favourite. Mostly companies that sell to developers — which is why most people have not heard of them. |
+| **Popular with tech people** | Companies in at least three Hacker News titles this month that are not household consumer brands, not worth $150 billion or more, and not a Reddit favourite - mostly companies that sell to developers, which is why most people have not heard of them. Two sources, mixed: the ~100 hand-picked companies in [`finance/tech_universe.json`](finance/tech_universe.json), and an **automatic search** of every other listed tech company worth $1B+ and every tech IPO of the last 12 months (see below). Automatic finds are labelled "found automatically" with the headline that triggered them. |
 
 Each list carries a plain "read this first" note (trending means the news is
 already in the price; a dip is not a discount; engineers love products, not
 valuations), and every row gets its most market-relevant recent headline.
+
+**How automatic discovery avoids false matches.** Matching company names in
+headlines goes wrong fast - "Block", "Quantum", "Match" are words, and "Graham"
+is Paul Graham. Two earlier designs were thrown away for exactly this (their top
+"tech favourites" included Trump Media, from "Trump", and a coal miner, from
+"Alpha"). What ships is a per-company Hacker News search with three gates, all
+computed from the search results themselves: the name must *stand alone* rather
+than sit inside a longer proper noun ("Paul Graham", "IBM Quantum"); it must
+not be used mostly as an ordinary lower-case word; and it must reach at least
+three such stories and 30 points - a higher bar than the curated list, because
+no person has checked the name. Recent IPOs come from Nasdaq's IPO calendar with
+blank-cheque shells (SPACs) and units filtered out, since new listings are
+exactly what a hand-written list cannot know about. On a normal month this adds
+a company or two; that low yield is the precision working, not a bug.
 
 Three data-quality rules do real work here. Hacker News matching is exact and
 case-sensitive — Algolia's default typo tolerance matched "Datadog" to
@@ -357,6 +371,30 @@ are ignored: `IP` (intellectual property), `DTE` (days to expiry), `ALL`,
 Boyd Gaming. And the tech universe is a *universe*, not a list of picks — which
 of its ~100 companies appear, and in what order, is decided daily by the data.
 
+### Your watchlist
+
+The **My watchlist** tab follows any ticker you choose - a company (NET), a
+share class (BRK.B) or a fund (VOO). Two tiers, because the site is static:
+
+- **Instant:** type a ticker in the box. It is saved in your browser and shows
+  today's price at once, from `docs/data/listing.json` (every US-listed stock,
+  exported daily).
+- **Tracked daily:** press **Track daily** on the card. It opens the *Edit
+  watchlist* workflow on GitHub - choose `add`, type the ticker, **Run
+  workflow**. The symbol is checked with Nasdaq (which also tells a fund from a
+  stock), written to [`watchlist.json`](watchlist.json), and the stock lists are
+  rebuilt in about two minutes. From then on it gets a full card every day:
+  price history, distance from its 52-week high, its most relevant headline, and
+  whether Stocktwits, Reddit or Hacker News are talking about it.
+
+From a terminal it is one command, then commit the file:
+
+```bash
+python -m finance.cli watch add NET VOO
+```
+
+`watch remove` and `watch list` do what they say.
+
 ---
 
 ## Tests
@@ -365,13 +403,14 @@ of its ~100 companies appear, and in what order, is decided daily by the data.
 python -m pytest tests/ -q
 ```
 
-217 tests, no network. Parser tests run against captured real responses in
+238 tests, no network. Parser tests run against captured real responses in
 `tests/fixtures/` so they assert against the shapes these services actually
 return. The LLM tests use a stub provider and cover batching, a failed batch, a
 per-minute 429 retry, a daily quota stopping the run, and the caching that keeps
 a second run free. The stock-list tests pin the rules above - a recovering
 stock is not a dip, one viral post does not outrank a month of discussion,
-Alphabet is not listed twice. The plain-language tests check that expert
+Alphabet is not listed twice, "Paul Graham" is not a company, a fund on the
+watchlist gets no invented market cap. The plain-language tests check that expert
 vocabulary never leaks into Beginner text. The pipeline test runs rank → brief →
 export end to end against a temporary database.
 
@@ -379,7 +418,7 @@ export end to end against a temporary database.
 
 ```
 finance/
-  cli.py             data / news / stocks / rank / brief / export / list / dash / calendar / prune
+  cli.py             data / news / stocks / watch / rank / brief / export / list / dash / calendar / prune
   indicators.py      THE knowledge file: 60 series, and why each one matters
   metrics.py         level -> context: momentum, z-score, percentile, sparkline
   regime.py          the seven reads and the mechanism behind each
@@ -390,7 +429,8 @@ finance/
   brief.py           the daily brief, computed or written
   plain.py           the Beginner layer: plain labels, anchored numbers, event text
   stocks.py          the three stock lists, as pure functions of fetched data
-  tech_universe.json the ~100 tech companies the HN signal is counted over
+  tech_universe.json the ~100 hand-picked tech companies (discovery adds more)
+  watchlist.py       validated edits to watchlist.json
   popularity.py      per-source crowd normalization (a minor input here)
   normalize.py       URL canonicalization and story identity
   db.py              SQLite: items, observations, events, state
@@ -398,5 +438,6 @@ finance/
   fetchers/          fred, nasdaq, social (Stocktwits/ApeWisdom/HN), rss, reddit, fomc
 docs/                the published site (index.html + data/*.json)
 profile.md           your situation and open questions. This file is the prompt.
+watchlist.json       the tickers you follow
 PLAYBOOK.md          how to read the market, and what each number means
 ```

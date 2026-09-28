@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Tickers tracked every day, in addition to the automatic lists. Each one gets",
+    "a full card on the page: price history, fall from its 52-week high, its most",
+    "relevant recent headline, and whether Stocktwits, Reddit or Hacker News are",
+    "talking about it. Stocks and ETFs both work.",
+    "",
+    "Edit with `python -m finance.cli watch add NET VOO` / `watch remove NET`, or",
+    "from GitHub: Actions -> Edit watchlist -> Run workflow. Hand-editing is fine",
+    "too; `name` and `kind` are filled in automatically if left out."
+  ],
+  "tickers": []
+}

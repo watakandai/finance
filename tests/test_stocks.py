@@ -184,6 +184,84 @@ def test_a_row_with_no_explanation_borrows_its_headline():
 
 def test_every_list_ships_with_a_plain_note_on_how_to_read_it():
     built = stocks.build({}, {}, [], [], {}, {})
-    assert set(built["lists"]) == set(built["notes"]) == {"trending", "dipping", "tech"}
+    assert set(built["lists"]) == set(built["notes"]) == {"watchlist", "trending", "dipping", "tech"}
     for note in built["notes"].values():
         assert note["what"] and note["careful"]
+
+
+# --------------------------------------------------------------- discovery
+
+def listed(symbol, name, cap=5e9, sector="Technology", industry="Software", volume=100):
+    return {"symbol": symbol, "name": name, "price": 10.0, "pct_today": 0.0,
+            "market_cap": cap, "sector": sector, "industry": industry, "volume": volume}
+
+
+def test_discovery_searches_listed_tech_the_universe_does_not_cover():
+    screener = {s["symbol"]: s for s in (
+        listed("NOK", "Nokia"),
+        listed("NET", "Cloudflare"),                                    # curated already
+        listed("UNP", "Union Pacific", sector="Industrials", industry="Railroads"),
+        listed("RKT", "Rocket Parts", sector="Industrials", industry="Aerospace"),
+        listed("TINY", "Tinyco", cap=5e8),                              # too small
+        listed("NEWB", "Newbie", cap=5e8),                              # small, but a new IPO
+        listed("QNTM", "Quantum"),                                      # a word
+        listed("SIMO", "Silicon Motion Technology"),
+    )}
+    found = {c["ticker"]: c for c in stocks.discovery_candidates(
+        screener, {"NET": {}}, ipos=[{"symbol": "NEWB", "priced": "2026-08-01"}])}
+    assert set(found) == {"NOK", "RKT", "NEWB", "SIMO"}
+    assert found["SIMO"]["query"] == "Silicon Motion"     # generic tail dropped
+    assert found["NEWB"]["ipo"] == "2026-08-01"
+    # New listings first, so a cap on the list never drops them.
+    assert stocks.discovery_candidates(screener, {}, ipos=[{"symbol": "NEWB"}])[0]["ticker"] == "NEWB"
+
+
+def test_search_names_keep_two_words_so_a_name_never_becomes_a_word():
+    assert stocks.search_name("Silicon Motion Technology") == "Silicon Motion"
+    assert stocks.search_name("Spectrum Brands") == "Spectrum Brands"
+    assert stocks.search_name("Nokia") == "Nokia"
+
+
+@pytest.mark.parametrize("counts,ok", [
+    ({"standalone": 4, "standalone_points": 255, "lower": 0}, True),     # Nokia
+    ({"standalone": 2, "standalone_points": 400, "lower": 0}, False),    # too few stories
+    ({"standalone": 5, "standalone_points": 12, "lower": 0}, False),     # nobody upvoted
+    ({"standalone": 35, "standalone_points": 154, "lower": 33}, False),  # "quantum"
+])
+def test_a_discovered_company_must_clear_a_higher_bar(counts, ok):
+    assert stocks.accept_discovered(counts) is ok
+
+
+def test_discovered_rows_report_the_conservative_numbers_and_say_so():
+    counts = {"NOK": {"stories": 9, "points": 900, "standalone": 4, "standalone_points": 255,
+                      "lower": 0, "top_title": "Nokia design archive", "top_url": "u"},
+              "QNTM": {"stories": 59, "points": 300, "standalone": 35,
+                       "standalone_points": 154, "lower": 33}}
+    found = stocks.discovered(counts, [{"ticker": "NOK", "ipo": ""}, {"ticker": "QNTM", "ipo": ""}])
+    assert list(found) == ["NOK"]
+    assert found["NOK"]["stories"] == 4 and found["NOK"]["found"] == "auto"
+    rows = stocks.tech_favourites({"NOK": listed("NOK", "Nokia", cap=6e10)}, {}, found, [], {},
+                                  today=TODAY)
+    assert "found automatically" in rows[0]["badges"] and rows[0]["found"] == "auto"
+
+
+# ---------------------------------------------------------------- watchlist
+
+def test_watchlist_rows_cover_stocks_funds_and_share_classes_in_order():
+    screener = {"NET": row("NET", name="Cloudflare"), "BRK/B": row("BRK/B", cap=1e12, name="Berkshire")}
+    hist = {"VOO": history(600, 710), "NET": history(300, 350), "BRK.B": history(480, 505)}
+    entries = [{"symbol": "VOO", "kind": "etf", "name": "Vanguard S&P 500 ETF"},
+               {"symbol": "NET", "kind": "stock"}, {"symbol": "BRK.B", "kind": "stock"}]
+    rows = stocks.watchlist_rows(entries, screener, hist, [twit("NET", 4)], [], {}, today=TODAY)
+    assert [r["symbol"] for r in rows] == ["VOO", "NET", "BRK.B"]
+    voo, net, brk = rows
+    # A fund has no market cap, so none is invented; its price comes from history.
+    assert voo["market_cap"] == 0 and voo["price"] == pytest.approx(710)
+    assert "fund (ETF)" in voo["badges"] and voo["what"].startswith("A fund")
+    assert net["why"] == "People are talking." and "#4 trending on Stocktwits" in net["badges"]
+    assert brk["name"] == "Berkshire" and brk["size"] == "giant"   # found via BRK/B
+
+
+def test_a_watchlist_symbol_with_no_data_yet_still_gets_a_row():
+    rows = stocks.watchlist_rows([{"symbol": "NEWCO"}], {}, {}, [], [], {}, today=TODAY)
+    assert rows[0]["symbol"] == "NEWCO" and rows[0]["price"] is None

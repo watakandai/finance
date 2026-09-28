@@ -46,4 +46,39 @@ def test_the_word_check_is_case_sensitive_and_whole_word():
 
 def test_no_mentions_is_zero_not_an_error():
     counts = count_mentions([], "Cloudflare")
-    assert counts == {"stories": 0, "points": 0, "top_title": "", "top_points": 0, "top_url": ""}
+    assert counts["stories"] == counts["points"] == counts["standalone"] == 0
+    assert counts["top_url"] == ""
+
+
+def hit(title, points=10, oid="1"):
+    return {"title": title, "points": points, "objectID": oid}
+
+
+def test_a_name_inside_a_longer_proper_noun_does_not_stand_alone():
+    hits = [hit("Paul Graham on LLMs thinking"), hit("IBM Quantum ships a new chip")]
+    assert count_mentions(hits, "Graham")["standalone"] == 0
+    assert count_mentions(hits, "Quantum")["standalone"] == 0
+
+
+def test_a_following_surname_is_a_known_gap_left_to_the_thresholds():
+    # Only the word BEFORE the name is checked: checking the word after would
+    # also reject Title Case headlines like "Nokia Design Archive". So "by
+    # Graham Farmelo" counts - and accept_discovered's points and story floors
+    # are what keep it out (in live data it had 7 points against a floor of 30).
+    counts = count_mentions([hit("Hawking by Graham Farmelo review", points=7)], "Graham")
+    assert counts["standalone"] == 1 and counts["standalone_points"] == 7
+
+
+def test_a_name_at_the_start_or_after_a_lowercase_word_stands_alone():
+    hits = [hit("Nokia design archive"), hit("Flipper Zero runs on Garmin watches"),
+            hit("Marvell pushes GlobalFoundries to expand")]
+    assert count_mentions(hits, "Nokia")["standalone"] == 1
+    assert count_mentions(hits, "Garmin")["standalone"] == 1
+    assert count_mentions(hits, "GlobalFoundries")["standalone"] == 1
+
+
+def test_lower_case_uses_reveal_a_name_that_is_mostly_a_word():
+    hits = [hit("A course on quantum computing"), hit("quantum error correction, explained"),
+            hit("Quantum announces results")]
+    counts = count_mentions(hits, "Quantum")
+    assert counts["lower"] == 2 and counts["standalone"] == 1

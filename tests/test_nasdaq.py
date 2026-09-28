@@ -151,3 +151,15 @@ def test_a_single_bad_symbol_does_not_trip_the_breaker(monkeypatch):
                                    pause=0, sleep=lambda s: None, workers=1)
     assert fetcher.fetch() and not fetcher.rate_limited
     assert [sym for sym, _ in fetcher.failures] == ["BAD"]
+
+
+# ---------------------------------------------------------------------- IPOs
+
+def test_ipo_calendar_keeps_operating_companies_and_drops_spacs():
+    rows = nasdaq.parse_ipos(load("nasdaq_ipos.json"))
+    symbols = {r["symbol"] for r in rows}
+    # York Space Systems and VenHub are companies; the "... Acquisition Corp"
+    # listings are blank-cheque shells, and "NBRGU" is a unit, not shares.
+    assert symbols == {"YSS", "VHUB"}
+    yss = next(r for r in rows if r["symbol"] == "YSS")
+    assert yss["name"] == "York Space Systems" and yss["priced"] == "2026-01-29"

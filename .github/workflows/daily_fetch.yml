@@ -246,4 +246,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Daily market refresh'
-          file_pattern: docs/data/items.json docs/data/market.json docs/data/stocks.json
+          file_pattern: docs/data/items.json docs/data/market.json docs/data/stocks.json docs/data/listing.json

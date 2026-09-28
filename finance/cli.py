@@ -30,6 +30,7 @@ from .fetchers import social
 from .fetchers.nasdaq import NasdaqHistoryFetcher
 from .impact import impact_scores
 from . import stocks as stock_lists
+from . import watchlist as watch_file
 
 DEFAULT_DB = Path.home() / ".finance" / "finance.db"
 FEEDS_FILE = Path(__file__).parent / "feeds.json"
@@ -125,6 +126,13 @@ def main() -> None:
     stocks_parser.add_argument("--skip", default="",
                                help="comma-separated: stocktwits, reddit, hn, history")
 
+    watch = sub.add_parser("watch", help="add, remove or list watchlist tickers")
+    watch.add_argument("action", choices=("add", "remove", "list"))
+    watch.add_argument("symbols", nargs="*", help="tickers, e.g. NET VOO")
+    watch.add_argument("--no-check", action="store_true",
+                       help="do not verify symbols with Nasdaq before adding")
+    watch.add_argument("--file", default=str(watch_file.DEFAULT_PATH))
+
     rank_parser = sub.add_parser(
         "rank", help="score news (impact and relevance; LLM optionally)")
     rank_parser.add_argument(
@@ -191,7 +199,7 @@ def main() -> None:
     Path(args.db).parent.mkdir(parents=True, exist_ok=True)
     init_db(args.db)
 
-    {"news": _cmd_news, "data": _cmd_data, "stocks": _cmd_stocks,
+    {"news": _cmd_news, "data": _cmd_data, "stocks": _cmd_stocks, "watch": _cmd_watch,
      "rank": _cmd_rank, "brief": _cmd_brief,
      "export": _cmd_export, "list": _cmd_list, "dash": _cmd_dash,
      "calendar": _cmd_calendar, "prune": _cmd_prune}[args.cmd](args)
@@ -274,6 +282,28 @@ def _cmd_data(args) -> None:
           f"{count_events(args.db)} events in the database")
 
 
+# ------------------------------------------------------------------ watch
+
+def _cmd_watch(args) -> None:
+    # Tickers may arrive as one comma-separated string from the GitHub form.
+    symbols = [s for raw in args.symbols for s in raw.replace(",", " ").split() if s]
+    if args.action == "list":
+        entries = watch_file.load(args.file)["tickers"]
+        for t in entries:
+            print(f"{t['symbol']:8} {t.get('kind', '?'):6} {t.get('name', '')}  (added {t.get('added', '?')})")
+        print(f"{len(entries)} on the watchlist")
+        return
+    if not symbols:
+        print("give at least one ticker, e.g. `watch add NET VOO`", file=sys.stderr)
+        sys.exit(2)
+    if args.action == "add":
+        report = watch_file.add(symbols, args.file, check=not args.no_check)
+    else:
+        report = watch_file.remove(symbols, args.file)
+    for symbol, outcome in report:
+        print(f"{symbol}: {outcome}")
+
+
 # ------------------------------------------------------------------ stocks
 
 def _cmd_stocks(args) -> None:
@@ -312,19 +342,53 @@ def _cmd_stocks(args) -> None:
     print(f"reddit (ApeWisdom): {len(reddit)} ranked tickers")
 
     universe = load_universe()
-    hn = attempt(
-        "hn",
-        lambda: social.hn_mentions(
-            [{"ticker": t, "name": c["query"], **c} for t, c in universe.items()
-             if t in screener],
-            days=args.hn_days),
-        previous.get("hn") or {})
-    print(f"hacker news: {sum(1 for v in hn.values() if v.get('stories'))} of "
-          f"{len(universe)} companies mentioned in the last {args.hn_days} days")
+    ipos = attempt("ipos", nasdaq_api.recent_ipos, previous.get("ipos") or [])
+    print(f"ipos: {len(ipos)} operating companies listed in the last 12 months")
 
+    # One Hacker News pass over two sets: the hand-picked universe, counted as
+    # found, and every other technical listed company plus recent tech IPOs,
+    # which must pass stock_lists.accept_discovered before they count at all.
+    discover = stock_lists.discovery_candidates(screener, universe, ipos)
+    searched = set(universe) | {c["ticker"] for c in discover}
+    # Watchlist companies are searched too, so their cards can say whether
+    # engineers are talking about them. Funds are skipped: "Vanguard S&P 500
+    # ETF" is not a thing anyone writes a headline about.
+    mine = []
+    for entry in watch_file.load()["tickers"]:
+        key = stock_lists.screener_key(entry["symbol"], screener)
+        if key and key not in searched and entry.get("kind") != "etf":
+            query = stock_lists.search_name(screener[key]["name"])
+            if len(query) >= 4:
+                mine.append({"ticker": entry["symbol"], "name": query, "query": query})
+    searches = ([{"ticker": t, "name": c["query"], **c} for t, c in universe.items()
+                 if t in screener]
+                + [{"ticker": c["ticker"], "name": c["query"], "query": c["query"]}
+                   for c in discover] + mine)
+
+    def search_hn():
+        counts = social.hn_mentions(searches, days=args.hn_days)
+        curated = {t: v for t, v in counts.items()
+                   if t in universe or t in {m["ticker"] for m in mine}}
+        found = stock_lists.discovered(counts, discover)
+        return {**found, **curated}
+
+    hn = attempt("hn", search_hn, previous.get("hn") or {})
+    auto = sorted(t for t, v in hn.items() if v.get("found") == "auto")
+    print(f"hacker news: {sum(1 for t, v in hn.items() if t in universe and v.get('stories'))} "
+          f"of {len(universe)} curated companies mentioned in {args.hn_days} days; "
+          f"{len(discover)} others searched, {len(auto)} found automatically"
+          + (f" ({', '.join(auto)})" if auto else ""))
+
+    watching = watch_file.load()["tickers"]
     wanted = stock_lists.candidates(screener, stocktwits, reddit, hn)
+    # Watchlist tickers always get history, stock or fund, whatever the lists
+    # think of them.
+    kinds = {sym: "stocks" for sym in wanted}
+    for entry in watching:
+        kinds.setdefault(entry["symbol"], "etf" if entry.get("kind") == "etf" else "stocks")
+    wanted = list(kinds)
     if "history" not in skip and wanted:
-        mapping = {sym: (f"stk:{sym}", "stocks") for sym in wanted}
+        mapping = {sym: (f"stk:{sym}", kind) for sym, kind in kinds.items()}
         fetcher = NasdaqHistoryFetcher(mapping, since=last_dates(args.db, "stk:"))
         observations = fetcher.fetch()
         upsert_observations(args.db, observations)
@@ -335,20 +399,30 @@ def _cmd_stocks(args) -> None:
             print(f"  history {symbol}: FAILED ({why})", file=sys.stderr)
     histories = {sym: series_values(args.db, f"stk:{sym}") for sym in wanted}
 
+    # The whole listing, compacted, for the page's "add a ticker" box: it lets a
+    # symbol show today's price the moment it is typed, before the daily job
+    # has ever seen it. Kept only when this run fetched a fresh screener.
+    if rows is not None:
+        set_state(args.db, "listing", [
+            [r["symbol"], r["name"], r["price"], r.get("pct_today"),
+             round(r.get("market_cap") or 0), r.get("sector") or ""]
+            for r in sorted(screener.values(), key=lambda r: r["symbol"])])
+
     # Only what the lists can use is kept: the full screener is ~7,000 rows and
     # would be carried in the cached database forever for nothing.
-    keep = set(wanted) | set(universe)
+    keep = set(wanted) | set(universe) | {e["symbol"] for e in watching}
     set_state(args.db, "stocks_inputs", {
         "screener": {k: v for k, v in screener.items() if k in keep},
         "stocktwits": stocktwits,
         "reddit": reddit,
         "hn": hn,
+        "ipos": ipos,
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     })
     since = (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
     recent = [row_to_dict(r) for r in query_items(args.db, order_by="impact", since=since)]
     built = stock_lists.build(screener, histories, stocktwits, reddit, hn, universe,
-                              items=recent)
+                              items=recent, watchlist=watching)
     set_state(args.db, "stocks", built)
     for key, rows in built["lists"].items():
         print(f"list {key}: {', '.join(r['symbol'] for r in rows) or '(empty)'}")
@@ -726,10 +800,19 @@ def _cmd_export(args) -> None:
         "generated_at": generated,
         "data_as_of": inputs.get("fetched_at", ""),
         "notes": built.get("notes") or stock_lists.LIST_NOTES,
-        "lists": built.get("lists") or {"trending": [], "dipping": [], "tech": []},
+        "lists": built.get("lists") or {"watchlist": [], "trending": [],
+                                        "dipping": [], "tech": []},
+        # So the page knows which symbols are tracked even before a daily run
+        # has built their cards.
+        "watchlist": [t["symbol"] for t in watch_file.load()["tickers"]],
     }
     (out_dir / "stocks.json").write_text(
         json.dumps(stocks_payload, separators=(",", ":"), default=str) + "\n")
+    listing = get_state(args.db, "listing") or []
+    (out_dir / "listing.json").write_text(json.dumps(
+        {"generated_at": inputs.get("fetched_at", ""),
+         "fields": ["symbol", "name", "price", "pct_today", "market_cap", "sector"],
+         "rows": listing}, separators=(",", ":"), default=str) + "\n")
     print(f"exported {len(market_payload['metrics'])} metrics, "
           f"{len(reading['reads'])} regime reads, {len(events)} upcoming events "
           f"to {out_dir}")

@@ -35,6 +35,7 @@ HN_URL = ("https://hn.algolia.com/api/v1/search?query={q}&tags=story"
           "&numericFilters=created_at_i>{since}&hitsPerPage=100")
 
 
+
 # ---------------------------------------------------------------- Stocktwits
 
 def stocktwits_trending(timeout: int = 20) -> list:
@@ -143,15 +144,38 @@ def hn_mentions(universe: list, days: int = 30, timeout: int = 20,
     return dict(r for r in results if r)
 
 
+_WORD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9&.'+-]*")
+
+
 def count_mentions(hits: list, term: str) -> dict:
+    """How many titles name the company, and how confidently.
+
+    Besides the plain count, two numbers exist for the automatic-discovery path,
+    where the name has not been checked by a person:
+
+    - `standalone` - titles where the name is not glued to a capitalised word in
+      front of it. "Paul Graham" and "IBM Quantum" are other proper nouns that
+      happen to contain a company's name; "Nokia" at the start of a title, or
+      "on Garmin", is the company. (A Title Case headline capitalises every
+      word, so it fails this test and is simply not counted - conservative on
+      purpose.)
+    - `lower` - titles using the name as an ordinary lower-case word. Algolia's
+      search is case-insensitive, so these come back in the same results, and a
+      name that is mostly a word ("quantum", "block") shows itself here.
+    """
     pattern = re.compile(rf"(?<![\w.]){re.escape(term)}(?![\w])")
+    lower_pattern = re.compile(rf"(?<![\w.]){re.escape(term.lower())}(?![\w])")
     matched = [h for h in hits if pattern.search(h.get("title") or "")]
-    stories = len(matched)
-    points = sum(int(h.get("points") or 0) for h in matched)
+    alone = [h for h in matched if _standalone(h.get("title") or "", pattern)]
+    lower = (0 if term.islower() else
+             sum(1 for h in hits if lower_pattern.search(h.get("title") or "")))
     top = max(matched, key=lambda h: int(h.get("points") or 0)) if matched else {}
     return {
-        "stories": stories,
-        "points": points,
+        "stories": len(matched),
+        "points": sum(int(h.get("points") or 0) for h in matched),
+        "standalone": len(alone),
+        "standalone_points": sum(int(h.get("points") or 0) for h in alone),
+        "lower": lower,
         "top_title": (top.get("title") or "").strip(),
         "top_points": int(top.get("points") or 0),
         # The HN thread rather than the outbound link: the discussion is the
@@ -159,6 +183,14 @@ def count_mentions(hits: list, term: str) -> dict:
         "top_url": (f"https://news.ycombinator.com/item?id={top['objectID']}"
                     if top.get("objectID") else ""),
     }
+
+
+def _standalone(title: str, pattern) -> bool:
+    for match in pattern.finditer(title):
+        before = _WORD_RE.findall(title[:match.start()])
+        if not before or not before[-1][:1].isupper():
+            return True
+    return False
 
 
 def _int(value):
