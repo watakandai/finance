@@ -188,3 +188,32 @@ def test_one_fred_request_per_series_even_when_two_indicators_share_it():
     mapping = cli.fred_series_map()
     assert mapping["PCEPILFE"] == ["core_pce", "core_pce_3m"]
     assert len(mapping) < sum(len(v) for v in mapping.values())
+
+
+def test_stocks_json_ships_even_before_any_stock_data_exists(store, tmp_path):
+    # A fork that never ran `stocks` must still get a valid file with the notes,
+    # so the page shows empty lists instead of an error.
+    out_dir = tmp_path / "out"
+    cli._cmd_rank(args(db=str(store)))
+    cli._cmd_export(args(db=str(store), out_dir=str(out_dir)))
+    payload = json.loads((out_dir / "stocks.json").read_text())
+    assert set(payload["lists"]) == {"trending", "dipping", "tech"}
+    assert all(payload["notes"][k]["careful"] for k in payload["lists"])
+
+
+def test_calendar_events_carry_their_plain_description(store, tmp_path):
+    out_dir = tmp_path / "out"
+    cli._cmd_rank(args(db=str(store)))
+    cli._cmd_export(args(db=str(store), out_dir=str(out_dir)))
+    market = json.loads((out_dir / "market.json").read_text())
+    assert market["calendar"] and all(e["plain"].get("what") for e in market["calendar"])
+    assert market["regime"]["plain"]["lede"]
+    assert all(r["plain"]["now"] for r in market["regime"]["reads"])
+
+
+def test_the_tech_universe_is_well_formed():
+    universe = cli.load_universe()
+    assert len(universe) > 80
+    for ticker, company in universe.items():
+        assert company["query"] and company["what"], ticker
+        assert company["what"].endswith("."), ticker

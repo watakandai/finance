@@ -374,6 +374,20 @@ def series_values(db_path, series_id: str, since: str = "") -> list:
         return [(date.fromisoformat(r["on_date"]), r["value"]) for r in rows]
 
 
+def last_dates(db_path, prefix: str = "") -> dict:
+    """{series id: last stored date}, optionally for ids starting with `prefix`.
+
+    What lets the price fetchers ask for three weeks instead of a year on every
+    run after the first.
+    """
+    with connect(db_path) as conn:
+        rows = conn.execute(
+            """SELECT series_id, MAX(on_date) AS last FROM observations
+               WHERE series_id LIKE ? GROUP BY series_id""",
+            (prefix.replace("%", "") + "%",))
+        return {r["series_id"]: date.fromisoformat(r["last"]) for r in rows}
+
+
 def series_ids(db_path) -> list:
     with connect(db_path) as conn:
         return [r[0] for r in conn.execute(

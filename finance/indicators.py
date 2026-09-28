@@ -40,7 +40,11 @@ class Series:
     label: str
     family: str
     fred: str = ""              # FRED series id, "" for a market quote
-    quote: str = ""             # Yahoo symbol, for prices FRED publishes late
+    # A Nasdaq-listed ETF, for markets FRED does not carry (gold, copper, small
+    # caps). The ETF's price is not the underlying's price - GLD is not the
+    # dollar price of an ounce - so a series priced this way says so in its
+    # label, and its changes, not its level, are the thing to read.
+    quote: str = ""
     transform: str = "level"
     # Multiplier applied to the raw value before anything else. FRED publishes
     # weekly claims in persons (196,000) and the Fed's balance sheet in millions
@@ -680,7 +684,7 @@ SERIES = (
     # --------------------------------------------------------------------- risk
     Series(
         id="spx", label="S&P 500", family="risk",
-        fred="SP500", quote="^GSPC", transform="level", unit="", tier=1,
+        fred="SP500", transform="level", unit="", tier=1,
         cadence="daily", decimals=0,
         why="The benchmark, and also a policy input: the Fed watches financial "
             "conditions, and equity prices are a large part of them. Its level "
@@ -696,7 +700,7 @@ SERIES = (
     ),
     Series(
         id="ndx", label="Nasdaq 100", family="risk",
-        quote="^NDX", transform="level", unit="", tier=2, cadence="daily",
+        fred="NASDAQ100", transform="level", unit="", tier=2, cadence="daily",
         decimals=0,
         why="The long-duration end of equities, and today the concentrated bet on "
             "AI capital spending. Its ratio to the S&P is the cleanest available "
@@ -710,8 +714,8 @@ SERIES = (
         good="up",
     ),
     Series(
-        id="rut", label="Russell 2000", family="risk",
-        quote="^RUT", transform="level", unit="", tier=3, cadence="daily",
+        id="rut", label="Small caps (IWM ETF)", family="risk",
+        quote="IWM", transform="level", unit="", tier=3, cadence="daily",
         decimals=0,
         why="Small caps carry floating-rate debt, borrow from banks rather than "
             "bond markets, and earn domestically. They are therefore the purest "
@@ -726,7 +730,7 @@ SERIES = (
     ),
     Series(
         id="vix", label="VIX", family="risk",
-        fred="VIXCLS", quote="^VIX", transform="level", unit="", tier=1,
+        fred="VIXCLS", transform="level", unit="", tier=1,
         cadence="daily", decimals=1,
         why="The price of one month of S&P options - the market's own estimate of "
             "how much it is about to move. It is mean-reverting and usually low, "
@@ -745,7 +749,7 @@ SERIES = (
     # ------------------------------------------------------------------- dollar
     Series(
         id="dollar_broad", label="Broad dollar index", family="dollar",
-        fred="DTWEXBGS", quote="DX-Y.NYB", transform="level", unit="index",
+        fred="DTWEXBGS", transform="level", unit="index",
         tier=2, cadence="daily", decimals=1,
         why="The dollar is the global funding currency, so its price is a global "
             "financial condition. A strong dollar tightens conditions everywhere, "
@@ -789,7 +793,7 @@ SERIES = (
     # -------------------------------------------------------------- commodities
     Series(
         id="wti", label="WTI crude", family="commodities",
-        fred="DCOILWTICO", quote="CL=F", transform="level", unit="$", tier=2,
+        fred="DCOILWTICO", transform="level", unit="$", tier=2,
         cadence="daily", decimals=2,
         why="The fastest route from geopolitics to headline inflation to consumer "
             "spending. An oil spike is a tax on consumption and an inflation "
@@ -815,8 +819,8 @@ SERIES = (
         good="none",
     ),
     Series(
-        id="gold", label="Gold", family="commodities",
-        quote="GC=F", transform="level", unit="$", tier=2, cadence="daily",
+        id="gold", label="Gold (GLD ETF)", family="commodities",
+        quote="GLD", transform="level", unit="$", tier=2, cadence="daily",
         decimals=1,
         why="Historically gold traded on real yields - it pays no coupon, so a "
             "higher real yield is a higher cost of holding it. When it rallies "
@@ -830,8 +834,8 @@ SERIES = (
         good="none",
     ),
     Series(
-        id="copper", label="Copper", family="commodities",
-        quote="HG=F", transform="level", unit="$", cadence="daily", tier=3,
+        id="copper", label="Copper (CPER ETF)", family="commodities",
+        quote="CPER", transform="level", unit="$", cadence="daily", tier=3,
         decimals=2,
         why="Industrial demand in one price - construction, grids, vehicles, data "
             "centres. Electrification has made it a structural story as well as a "
@@ -844,7 +848,7 @@ SERIES = (
     ),
     Series(
         id="bitcoin", label="Bitcoin", family="risk",
-        quote="BTC-USD", transform="level", unit="$", cadence="daily", tier=3,
+        fred="CBBTCUSD", transform="level", unit="$", cadence="daily", tier=3,
         decimals=0,
         why="Tracked here as a liquidity and risk-appetite gauge rather than on "
             "its own merits: it trades 24/7, holds no cash flows, and has been "

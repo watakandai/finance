@@ -601,14 +601,20 @@ def assess(summaries: dict, series: dict = None, ratios: dict = None) -> dict:
     ]
     by_id = {r["id"]: r for r in reads}
     total = sum(r["score"] for r in reads)
-    return {
+    tension = _tension(by_id)
+    out = {
         "reads": [by_id[k] for k in ORDER if k in by_id],
         "score": total,
         "stance": _overall(total),
         "summary": _summary(by_id),
-        "tension": _tension(by_id),
+        "tension": TENSIONS[tension],
+        "tension_key": tension,
         "disclaimer": DISCLAIMER,
     }
+    # The beginner layer is added on top rather than woven through the reads,
+    # so the expert logic above never has to know it exists.
+    from .plain import annotate
+    return annotate(out, summaries, series)
 
 
 def _overall(total: int) -> str:
@@ -637,13 +643,42 @@ def _summary(by_id: dict) -> str:
     return "; ".join(parts) + "."
 
 
+# The disagreements `_tension` can name, keyed so a plain-language layer
+# (`finance.plain`) can translate each one without re-deriving the logic.
+TENSIONS = {
+    "equities_ignore_credit":
+        "Equities are priced for calm while credit spreads widen. Credit has led "
+        "equities at every serious turn, so this gap usually closes in credit's "
+        "direction.",
+    "equities_ignore_jobs":
+        "Risk appetite is holding up while the labour data deteriorates. That "
+        "combination is sustainable only if the market is right that the Fed "
+        "will ease before earnings estimates fall.",
+    "cuts_priced_into_inflation":
+        "The market is pricing easing while inflation is still above target. A "
+        "single hot print removes both the expected cuts and the multiple that "
+        "was built on them.",
+    "stagflation":
+        "Growth slowing with inflation still above target is the one "
+        "configuration monetary policy cannot fix quickly - it is why bonds and "
+        "equities fell together in 2022.",
+    "nervous_without_cause":
+        "Equities are nervous while credit and the data are fine. Drawdowns that "
+        "credit does not confirm have historically been the recoverable kind.",
+    "consistent":
+        "The reads are broadly consistent with each other, which means the "
+        "market is priced roughly where the data says it should be - and the "
+        "next scheduled release matters more than usual.",
+}
+
+
 def _tension(by_id: dict) -> str:
     """The most useful thing on the page: where the reads disagree.
 
     A market is only mispriced relative to fundamentals when the two disagree,
     so naming the disagreement is more actionable than any single state. The
     pairs checked are the ones with a real historical record of resolving in
-    the fundamental's favour.
+    the fundamental's favour. Returns a key into TENSIONS.
     """
     risk_score = (by_id.get("risk") or {}).get("score", 0)
     credit_score = (by_id.get("credit") or {}).get("score", 0)
@@ -652,25 +687,13 @@ def _tension(by_id: dict) -> str:
     policy_score = (by_id.get("policy") or {}).get("score", 0)
 
     if risk_score > 0 and credit_score < 0:
-        return ("Equities are priced for calm while credit spreads widen. Credit "
-                "has led equities at every serious turn, so this gap usually "
-                "closes in credit's direction.")
+        return "equities_ignore_credit"
     if risk_score > 0 and growth_score < 0:
-        return ("Risk appetite is holding up while the labour data deteriorates. "
-                "That combination is sustainable only if the market is right that "
-                "the Fed will ease before earnings estimates fall.")
+        return "equities_ignore_jobs"
     if inflation_score < 0 and policy_score > 0:
-        return ("The market is pricing easing while inflation is still above "
-                "target. A single hot print removes both the expected cuts and "
-                "the multiple that was built on them.")
+        return "cuts_priced_into_inflation"
     if growth_score < 0 and inflation_score < 0:
-        return ("Growth slowing with inflation still above target is the one "
-                "configuration monetary policy cannot fix quickly - it is why "
-                "bonds and equities fell together in 2022.")
+        return "stagflation"
     if risk_score < 0 and credit_score >= 0 and growth_score >= 0:
-        return ("Equities are nervous while credit and the data are fine. "
-                "Drawdowns that credit does not confirm have historically been "
-                "the recoverable kind.")
-    return ("The reads are broadly consistent with each other, which means the "
-            "market is priced roughly where the data says it should be - and "
-            "the next scheduled release matters more than usual.")
+        return "nervous_without_cause"
+    return "consistent"

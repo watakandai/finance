@@ -8,25 +8,30 @@
   :root {
     --bg:#f7f7f8; --card:#fff; --border:#e4e4e7; --text:#18181b; --muted:#71717a;
     --accent:#1d4ed8; --accent-soft:#eef2ff; --chip:#f4f4f5; --seen:#a1a1aa;
-    --up:#15803d; --down:#b91c1c; --warn:#b45309; --neutral:#52525b;
+    --up:#15803d; --down:#b91c1c; --warn:#b45309; --warn-soft:#fffbeb; --neutral:#52525b;
     --bar:#d4d4d8; --spark:#6b7280;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg:#0d0d0f; --card:#161619; --border:#27272a; --text:#e8e8ea; --muted:#8b8b93;
       --accent:#7d9bfa; --accent-soft:#181f35; --chip:#1f1f23; --seen:#5a5a63;
-      --up:#4ade80; --down:#f87171; --warn:#fbbf24; --neutral:#a1a1aa;
+      --up:#4ade80; --down:#f87171; --warn:#fbbf24; --warn-soft:#2a2210; --neutral:#a1a1aa;
       --bar:#3f3f46; --spark:#9ca3af;
     }
   }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text);
-         font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+         font:14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
   a { color:inherit; }
   .wrap { max-width:1060px; margin:0 auto; padding:0 16px; }
+
+  /* Beginner mode hides expert-only blocks and vice versa. */
+  body.beginner .adv-only { display:none !important; }
+  body.advanced .beg-only { display:none !important; }
+
   header { position:sticky; top:0; z-index:30; background:var(--card);
            border-bottom:1px solid var(--border); }
-  .hrow { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:9px 0 7px; }
+  .hrow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 0 6px; }
   h1 { font-size:15px; margin:0; letter-spacing:-.01em; white-space:nowrap; }
   .sub { font-size:12px; color:var(--muted); }
   .spacer { flex:1; }
@@ -35,63 +40,116 @@
           border-radius:6px; white-space:nowrap; }
   nav a:hover { background:var(--chip); color:var(--text); }
   main { padding-bottom:70px; }
-  section { margin-top:26px; scroll-margin-top:78px; }
-  h2 { font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted);
-       margin:0 0 9px; padding-bottom:5px; border-bottom:1px solid var(--border);
-       display:flex; align-items:baseline; gap:8px; }
-  h2 .note { text-transform:none; letter-spacing:0; font-size:11.5px; opacity:.85; }
+  section { margin-top:28px; scroll-margin-top:84px; }
+  h2 { font-size:17px; margin:0 0 4px; letter-spacing:-.01em; }
+  body.advanced h2 { font-size:12px; letter-spacing:.07em; text-transform:uppercase;
+                     color:var(--muted); }
+  .lead { color:var(--muted); font-size:13px; margin:0 0 11px; max-width:720px; }
   .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
-          padding:13px 15px; }
+          padding:14px 16px; }
 
-  /* brief */
-  .lede { font-size:15px; line-height:1.55; margin:0 0 10px; }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  .seg button { border:0; background:var(--card); color:var(--muted); font:inherit;
+                font-size:12.5px; padding:5px 11px; cursor:pointer;
+                border-right:1px solid var(--border); }
+  .seg button:last-child { border-right:0; }
+  .seg button[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent);
+                                     font-weight:600; }
+
+  /* glossary terms and their popover */
+  .term { font:inherit; color:inherit; background:none; border:0; padding:0; cursor:help;
+          border-bottom:1px dotted var(--muted); }
+  .term:hover { color:var(--accent); border-bottom-color:var(--accent); }
+  #pop { position:absolute; z-index:50; max-width:300px; background:var(--card);
+         border:1px solid var(--border); border-radius:9px; padding:10px 12px;
+         font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.14); display:none; }
+  #pop b { display:block; margin-bottom:3px; }
+
+  /* today */
+  .lede { font-size:16px; line-height:1.55; margin:0 0 10px; }
+  body.advanced .lede { font-size:15px; }
   .stance { display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase;
             letter-spacing:.05em; padding:2px 7px; border-radius:5px; background:var(--chip);
             color:var(--muted); }
   .stance.pos { background:color-mix(in srgb, var(--up) 15%, transparent); color:var(--up); }
   .stance.neg { background:color-mix(in srgb, var(--down) 15%, transparent); color:var(--down); }
   .points { list-style:none; margin:0; padding:0; }
-  .points li { padding:6px 0; border-top:1px solid var(--border); font-size:13.5px; }
+  .points li { padding:7px 0; border-top:1px solid var(--border); font-size:14px; }
   .points .tag { font-weight:650; margin-right:6px; }
-  .tension { margin-top:10px; padding:9px 11px; border-radius:8px; background:var(--accent-soft);
-             font-size:13px; border:1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
-  .tension b { color:var(--accent); }
+  .callout { margin-top:11px; padding:10px 12px; border-radius:8px; font-size:13.5px;
+             background:var(--accent-soft);
+             border:1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+  .callout b { color:var(--accent); }
+  .callout.warn { background:var(--warn-soft);
+                  border-color:color-mix(in srgb, var(--warn) 30%, transparent); }
+  .callout.warn b { color:var(--warn); }
+  .small-head { color:var(--muted); font-size:11px; letter-spacing:.06em;
+                text-transform:uppercase; margin:14px 0 2px; }
 
-  /* regime tiles */
-  .tiles { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); }
+  /* big picture tiles */
+  .tiles { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); }
   .tile { background:var(--card); border:1px solid var(--border); border-radius:10px;
-          padding:10px 12px; cursor:pointer; }
+          padding:11px 13px; cursor:pointer; }
   .tile:hover { border-color:var(--accent); }
-  .tile .top { display:flex; align-items:center; gap:7px; }
-  .tile .name { font-weight:650; font-size:13px; }
-  .tile .state { font-size:12.5px; color:var(--muted); margin-top:4px; }
+  .tile .top { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .tile .name { font-weight:650; font-size:14px; }
+  .tile .state { font-size:13px; color:var(--muted); margin-top:5px; }
+  .tile .hint { font-size:11.5px; color:var(--accent); margin-top:6px; }
+  .tile.open .hint { display:none; }
   .dial { display:inline-flex; gap:2px; }
   .dial i { width:5px; height:12px; border-radius:1px; background:var(--bar); }
   .dial i.on.pos { background:var(--up); }
   .dial i.on.neg { background:var(--down); }
   .tile .detail { display:none; margin-top:9px; border-top:1px solid var(--border);
-                  padding-top:8px; font-size:12.5px; color:var(--muted); }
+                  padding-top:8px; font-size:13px; color:var(--muted); }
   .tile.open .detail { display:block; }
-  .tile .detail p { margin:0 0 7px; }
-  .tile .detail .k { color:var(--text); font-weight:650; }
+  .tile .detail p { margin:0 0 8px; }
+  .k { color:var(--text); font-weight:650; }
   .ev { display:flex; justify-content:space-between; gap:8px; padding:2px 0;
         font-variant-numeric:tabular-nums; }
   .ev .en { color:var(--text); }
   .ev .ed { opacity:.8; font-size:11.5px; }
+
+  /* stocks */
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tab { border:1px solid var(--border); background:var(--card); color:var(--muted);
+         border-radius:999px; padding:6px 13px; font:inherit; font-size:13px; cursor:pointer; }
+  .tab[aria-pressed="true"] { background:var(--accent-soft); border-color:var(--accent);
+                              color:var(--accent); font-weight:600; }
+  .tab .n { opacity:.6; margin-left:4px; }
+  .stock-grid { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+  .stock { background:var(--card); border:1px solid var(--border); border-radius:10px;
+           padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+  .stock .shead { display:flex; align-items:baseline; gap:8px; }
+  .stock .sym { font-weight:700; font-size:15px; letter-spacing:.01em; }
+  .stock .nm { font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis;
+               white-space:nowrap; flex:1; }
+  .stock .what { font-size:13px; color:var(--muted); }
+  .moves { display:flex; gap:12px; flex-wrap:wrap; font-size:12.5px;
+           font-variant-numeric:tabular-nums; align-items:center; }
+  .moves span { white-space:nowrap; }
+  .moves .lbl { color:var(--muted); }
+  .stock .why { font-size:13px; }
+  .stock .why .src { color:var(--muted); font-size:11.5px; }
+  .badges { display:flex; gap:5px; flex-wrap:wrap; }
+  .badge { background:var(--chip); border-radius:4px; padding:1px 7px; font-size:11px;
+           color:var(--muted); }
+  .slinks { display:flex; gap:12px; font-size:12px; margin-top:auto; padding-top:2px; }
+  .slinks a { color:var(--accent); text-decoration:none; }
+  .slinks a:hover { text-decoration:underline; }
 
   /* tables */
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th { text-align:right; font-weight:600; font-size:11px; text-transform:uppercase;
        letter-spacing:.04em; color:var(--muted); padding:4px 6px; }
   th:first-child, td:first-child { text-align:left; }
-  td { padding:4px 6px; border-top:1px solid var(--border); font-variant-numeric:tabular-nums; }
+  td { padding:5px 6px; border-top:1px solid var(--border); font-variant-numeric:tabular-nums; }
   tr.metric { cursor:pointer; }
   tr.metric:hover td { background:var(--card); }
   tr.why td { padding:0 6px 10px; border-top:0; }
   .whybox { font-size:12.5px; color:var(--muted); background:var(--card);
             border:1px solid var(--border); border-radius:8px; padding:9px 11px; }
   .whybox p { margin:0 0 6px; }
-  .whybox .k { color:var(--text); font-weight:650; }
   .pos { color:var(--up); } .neg { color:var(--down); } .flat { color:var(--muted); }
   .num { text-align:right; }
   .rankbar { position:relative; height:5px; width:56px; background:var(--bar);
@@ -100,31 +158,26 @@
                background:var(--accent); }
   .famhead td { font-weight:650; font-size:11.5px; text-transform:uppercase;
                 letter-spacing:.05em; color:var(--muted); padding-top:13px; border-top:0; }
+  .asset-sub { display:block; font-size:11.5px; color:var(--muted); }
   svg.spark { display:block; }
 
   /* calendar */
   .cal { list-style:none; margin:0; padding:0; }
-  .cal li { display:flex; gap:10px; align-items:baseline; padding:5px 0;
-            border-top:1px solid var(--border); font-size:13px; cursor:pointer; }
+  .cal li { display:flex; gap:10px; align-items:baseline; padding:7px 0;
+            border-top:1px solid var(--border); font-size:13.5px; cursor:pointer; }
   .cal li:first-child { border-top:0; }
-  .cal .when { flex:0 0 108px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .cal .when { flex:0 0 112px; color:var(--muted); font-variant-numeric:tabular-nums; }
   .cal .when b { color:var(--text); font-weight:650; }
-  .cal .imp { flex:0 0 14px; color:var(--warn); }
+  .cal .imp { flex:0 0 30px; color:var(--warn); font-size:12px; }
   .cal .ttl { flex:1; min-width:0; }
   .cal .est { color:var(--muted); font-size:11.5px; }
   .cal .d { display:none; font-size:12.5px; color:var(--muted); margin-top:3px; }
   .cal li.open .d { display:block; }
+  body.beginner .cal .d { display:block; }
   .today { color:var(--accent); font-weight:650; }
 
   /* news */
   .bar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 9px; }
-  .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
-  .seg button { border:0; background:var(--card); color:var(--muted); font:inherit;
-                font-size:12.5px; padding:5px 11px; cursor:pointer;
-                border-right:1px solid var(--border); }
-  .seg button:last-child { border-right:0; }
-  .seg button[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent);
-                                     font-weight:600; }
   input[type=search] { flex:1; min-width:140px; padding:5px 10px; font:inherit; font-size:12.5px;
     border:1px solid var(--border); border-radius:7px; background:var(--card); color:var(--text); }
   .toggle { font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:5px;
@@ -138,6 +191,7 @@
   .group-head { font-size:11px; letter-spacing:.07em; text-transform:uppercase;
                 color:var(--muted); margin:18px 0 6px; padding-bottom:5px;
                 border-bottom:1px solid var(--border); }
+  .group-head .gsub { text-transform:none; letter-spacing:0; font-size:12px; opacity:.85; }
   .item { display:flex; gap:10px; padding:8px 10px; border-radius:8px; align-items:flex-start;
           border:1px solid transparent; }
   .item:hover { background:var(--card); border-color:var(--border); }
@@ -155,10 +209,13 @@
   .meta { font-size:12px; color:var(--muted); margin-top:2px; display:flex; gap:6px;
           flex-wrap:wrap; align-items:center; }
   .dot::before { content:"·"; margin-right:6px; }
-  .src { font-weight:600; color:var(--text); opacity:.75; }
+  .srcn { font-weight:600; color:var(--text); opacity:.75; }
   .t1 { color:var(--accent); font-weight:700; font-size:10.5px; border:1px solid var(--accent);
         border-radius:4px; padding:0 4px; }
-  .why { font-style:italic; }
+  .flag { font-weight:650; font-size:11px; border-radius:4px; padding:0 5px; }
+  .flag.imp { color:var(--warn); background:var(--warn-soft); }
+  .flag.you { color:var(--accent); background:var(--accent-soft); }
+  .whyline { font-style:italic; }
   .mchip { background:var(--chip); border-radius:4px; padding:1px 6px; font-size:11px; }
   .also a { color:var(--muted); text-decoration:none; border-bottom:1px dotted var(--border); }
   .also a:hover { color:var(--accent); }
@@ -170,61 +227,145 @@
   .more:hover { color:var(--accent); border-color:var(--accent); background:var(--card); }
   .empty, .status { color:var(--muted); font-size:13px; padding:22px 0; text-align:center; }
   .status.error { color:var(--down); }
+
+  /* learn */
+  .lessons { display:grid; gap:8px; }
+  details.lesson { background:var(--card); border:1px solid var(--border); border-radius:10px;
+                   padding:0 15px; }
+  details.lesson summary { cursor:pointer; padding:12px 0; font-weight:650; font-size:14.5px;
+                           list-style:none; display:flex; gap:10px; align-items:baseline; }
+  details.lesson summary::-webkit-details-marker { display:none; }
+  details.lesson summary .num { color:var(--accent); font-variant-numeric:tabular-nums;
+                                flex:0 0 18px; text-align:left; }
+  details.lesson summary .mins { margin-left:auto; font-weight:400; font-size:12px;
+                                 color:var(--muted); white-space:nowrap; }
+  details.lesson[open] summary { border-bottom:1px solid var(--border); }
+  .lesson-body { padding:10px 0 14px; font-size:14px; max-width:720px; }
+  .lesson-body p { margin:0 0 10px; }
+  .lesson-body ul { margin:0 0 10px; padding-left:20px; }
+  .lesson-body li { margin-bottom:4px; }
+  .gloss { columns:2 300px; column-gap:24px; font-size:13.5px; }
+  .gloss div { break-inside:avoid; margin-bottom:9px; }
+  .gloss b { display:block; }
+  .gloss span { color:var(--muted); }
+
   footer { border-top:1px solid var(--border); margin-top:34px; padding:14px 0 50px;
            font-size:12px; color:var(--muted); }
   kbd { background:var(--chip); border:1px solid var(--border); border-radius:4px; padding:0 4px;
         font:inherit; font-size:11px; }
-  .disclaimer { margin-top:8px; font-size:11.5px; opacity:.9; }
+  .disclaimer { margin-top:8px; font-size:12px; }
   @media (max-width:620px) {
     .sub.hide-sm { display:none; }
-    .cal .when { flex-basis:88px; }
+    .cal .when { flex-basis:92px; }
     th.opt, td.opt { display:none; }
+    .stock-grid { grid-template-columns:1fr; }
   }
 </style>
 </head>
-<body>
+<body class="beginner">
 <header>
   <div class="wrap">
     <div class="hrow">
       <h1>Finance Curator</h1>
       <span class="sub" id="generated"></span>
       <span class="spacer"></span>
-      <span class="sub hide-sm" id="counts"></span>
+      <div class="seg" id="mode-seg" title="Beginner explains everything in plain English. Advanced shows the raw numbers.">
+        <button data-mode="beginner" aria-pressed="true">Beginner</button>
+        <button data-mode="advanced">Advanced</button>
+      </div>
     </div>
     <nav>
-      <a href="#brief">Brief</a>
-      <a href="#regime">Regime</a>
-      <a href="#markets">Cross-asset</a>
-      <a href="#calendar">Calendar</a>
-      <a href="#metrics">Metrics</a>
+      <a href="#today">Today</a>
+      <a href="#picture">Big picture</a>
+      <a href="#stocks">Stocks</a>
+      <a href="#coming">Coming up</a>
+      <a href="#markets">Markets</a>
       <a href="#news">News</a>
+      <a href="#numbers" class="adv-only">Numbers</a>
+      <a href="#learn">Learn</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <section id="brief">
-    <h2>Today <span class="note" id="brief-by"></span></h2>
+  <section id="today">
+    <h2><span class="beg-only">Today, in plain English</span><span class="adv-only">Today</span></h2>
+    <p class="lead beg-only">A two-minute summary. Dotted words are explained if you tap them.
+      New here? Start with <a href="#learn">Learn the basics</a>.</p>
+    <p class="lead adv-only" id="brief-by"></p>
     <div class="card" id="brief-card"><div class="status">Loading…</div></div>
   </section>
 
-  <section id="regime">
-    <h2>Regime <span class="note">seven reads, in the order causation runs. Click any tile.</span></h2>
+  <section id="picture">
+    <h2><span class="beg-only">The big picture</span><span class="adv-only">Regime</span></h2>
+    <p class="lead beg-only">Seven things that move the whole stock market, and whether each one
+      is helping or hurting right now. They're in order: each one tends to cause the next.
+      Tap a card to learn what it is and why it matters to you.</p>
+    <p class="lead adv-only">Seven reads, in the order causation runs. Click any tile.</p>
     <div class="tiles" id="regime-tiles"></div>
   </section>
 
-  <section id="markets">
-    <h2>Cross-asset <span class="note">what is leading, and what that combination usually means</span></h2>
-    <div id="snapshot"></div>
+  <section id="stocks">
+    <h2>Stocks people are watching</h2>
+    <p class="lead">Three lists, rebuilt every day from what investors and engineers are
+      talking about and what prices did. They show where attention is &mdash; they are
+      <b>not</b> recommendations. Every stock is on a list for a reason, and the reason is shown.</p>
+    <div class="tabs" id="stock-tabs"></div>
+    <div id="stock-note"></div>
+    <div class="stock-grid" id="stock-grid"><div class="status">Loading…</div></div>
+    <p class="sub" id="stock-asof" style="margin-top:8px"></p>
   </section>
 
-  <section id="calendar">
-    <h2>Scheduled next <span class="note">~ means the date is inferred from the publication rule, not confirmed</span></h2>
+  <section id="coming">
+    <h2><span class="beg-only">Coming up</span><span class="adv-only">Scheduled next</span></h2>
+    <p class="lead beg-only">Scheduled events that often move the market. More stars means a
+      bigger usual effect. A <b>~</b> means the date is our best estimate, not an official one.</p>
+    <p class="lead adv-only">~ means the date is inferred from the publication rule, not confirmed.</p>
     <div class="card"><ul class="cal" id="cal-list"></ul></div>
   </section>
 
-  <section id="metrics">
-    <h2>Metrics <span class="note">click a row for why it matters and what a move means</span></h2>
+  <section id="markets">
+    <h2><span class="beg-only">How different parts of the market did</span><span class="adv-only">Cross-asset</span></h2>
+    <p class="lead beg-only">Each row is a fund that tracks one slice of the market, so you can
+      see what's going up and what's going down. Green is up, red is down.</p>
+    <p class="lead adv-only">What is leading, and what that combination usually means.</p>
+    <div id="snapshot"></div>
+  </section>
+
+  <section id="news">
+    <h2>News</h2>
+    <p class="lead beg-only">Ranked by how useful each story is for you. <span class="flag imp">Big</span>
+      means it moves markets generally; <span class="flag you">For you</span> means it's especially
+      relevant to what you're trying to learn. Stories are grouped by how long they'll matter.</p>
+    <p class="lead adv-only">Relevance to you, and market impact, scored separately.</p>
+    <div class="bar">
+      <div class="seg" id="window-seg">
+        <button data-days="1">Today</button>
+        <button data-days="3" aria-pressed="true">3 days</button>
+        <button data-days="7">Week</button>
+        <button data-days="0">All</button>
+      </div>
+      <div class="seg" id="sort-seg">
+        <button data-sort="score" aria-pressed="true">For you</button>
+        <button data-sort="impact">Biggest</button>
+        <button data-sort="published_ts">Newest</button>
+      </div>
+      <div class="seg adv-only" id="group-seg">
+        <button data-group="horizon" aria-pressed="true">By horizon</button>
+        <button data-group="category">By topic</button>
+        <button data-group="">Flat</button>
+      </div>
+      <input type="search" id="q" placeholder="Search news…">
+      <label class="toggle"><input type="checkbox" id="hide-seen"> hide read</label>
+    </div>
+    <div class="chips" id="cats"></div>
+    <div id="list"></div>
+    <div class="status" id="news-status">Loading…</div>
+  </section>
+
+  <section id="numbers" class="adv-only">
+    <h2>Metrics</h2>
+    <p class="lead">Click a row for why it matters and what a move means.</p>
     <div class="bar">
       <div class="seg" id="tier-seg">
         <button data-tier="1" aria-pressed="true">Headline</button>
@@ -235,40 +376,25 @@
     <div id="metrics-table"></div>
   </section>
 
-  <section id="news">
-    <h2>News <span class="note">relevance to you, and market impact, scored separately</span></h2>
-    <div class="bar">
-      <div class="seg" id="window-seg">
-        <button data-days="1" aria-pressed="true">Today</button>
-        <button data-days="3">3 days</button>
-        <button data-days="7">Week</button>
-        <button data-days="0">All</button>
-      </div>
-      <div class="seg" id="sort-seg">
-        <button data-sort="score" aria-pressed="true">For you</button>
-        <button data-sort="impact">Impact</button>
-        <button data-sort="published_ts">Newest</button>
-      </div>
-      <div class="seg" id="group-seg">
-        <button data-group="horizon" aria-pressed="true">By horizon</button>
-        <button data-group="category">By topic</button>
-        <button data-group="">Flat</button>
-      </div>
-      <input type="search" id="q" placeholder="Filter by word, source, ticker…">
-      <label class="toggle"><input type="checkbox" id="hide-seen"> hide seen</label>
-    </div>
-    <div class="chips" id="cats"></div>
-    <div id="list"></div>
-    <div class="status" id="news-status">Loading…</div>
+  <section id="learn">
+    <h2>Learn the basics</h2>
+    <p class="lead">Seven short lessons, in order. Each takes a few minutes, and together they
+      explain everything on this page. Then a glossary of every term used here.</p>
+    <div class="lessons" id="lessons"></div>
+    <h3 class="small-head" style="margin-top:22px">Glossary</h3>
+    <div class="card"><div class="gloss" id="glossary"></div></div>
   </section>
 </main>
 
 <footer class="wrap">
-  <kbd>j</kbd>/<kbd>k</kbd> move · <kbd>o</kbd> open · <kbd>m</kbd> mark seen ·
-  <kbd>space</kbd> expand. News is ranked against <code>profile.md</code>;
-  read state is stored in this browser only.
-  <div class="disclaimer" id="disclaimer"></div>
+  <span class="adv-only"><kbd>j</kbd>/<kbd>k</kbd> move · <kbd>o</kbd> open ·
+  <kbd>m</kbd> mark read · <kbd>space</kbd> expand. </span>
+  News is ranked against <code>profile.md</code>; what you've read is stored in this browser only.
+  <div class="disclaimer" id="disclaimer">This page describes public data and how it has
+    historically affected markets. It is not advice about what to buy, sell or hold.</div>
 </footer>
+
+<div id="pop" role="dialog"></div>
 
 <script>
 const LS = {
@@ -283,9 +409,11 @@ const LS = {
 };
 
 const state = {
+  mode: LS.get('mode', 'beginner'),
   items: [], categories: {}, horizons: {}, assets: {},
-  market: null,
-  days: LS.get('days', 1),
+  market: null, stocks: null,
+  stockTab: LS.get('stockTab', 'trending'),
+  days: LS.get('days', 3),
   sort: LS.get('sort', 'score'),
   group: LS.get('group', 'horizon'),
   query: '',
@@ -294,17 +422,118 @@ const state = {
   tier: LS.get('tier', 1),
   seen: new Set(LS.get('seen', [])),
   cursor: -1,
-  // Paging state, deliberately not persisted: each visit should start at the
-  // top of a short list, not wherever yesterday's reading ended up.
   expanded: new Set(),
   flatShown: 20,
 };
+const beginner = () => state.mode === 'beginner';
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const idOf = it => it.url || it.discussion_url || it.title;
+// -- glossary --------------------------------------------------------------
+// One source for both the tap-to-define popovers and the glossary list at the
+// bottom. Definitions are written for someone who has never studied finance.
 
+const GLOSSARY = {
+  'stock': 'A small piece of ownership in a company. If the company becomes more valuable, so does the stock.',
+  'share': 'One unit of a stock. Owning 10 shares of a company means owning 10 of its pieces.',
+  'ticker': 'The short code a stock trades under, like AAPL for Apple or NVDA for Nvidia.',
+  'stock market': 'Where shares of companies are bought and sold. "The market" usually means the S&P 500.',
+  'S&P 500': 'An index of the 500 biggest US companies. When people say "the market went up", they usually mean this.',
+  'Nasdaq': 'A US stock exchange, and an index of its biggest companies - which leans heavily towards tech.',
+  'index': 'A list of stocks whose combined price is tracked as one number, like the S&P 500.',
+  'index fund': 'A fund that simply buys every stock in an index, so you own a tiny slice of all of them at once.',
+  'ETF': 'Exchange-traded fund: a basket of stocks or bonds you can buy like a single stock. Many index funds are ETFs.',
+  'market cap': 'What a whole company is worth on the stock market: the share price times the number of shares.',
+  'earnings': 'A company\'s profit. "Earnings season" is when companies report their quarterly results.',
+  'guidance': 'What a company tells investors it expects to earn next. Changes to guidance often move a stock more than the results themselves.',
+  'dividend': 'Cash a company pays out to its shareholders, usually every quarter.',
+  'volatility': 'How much and how fast a price swings up and down.',
+  'rally': 'A period when prices rise.',
+  'dip': 'A fall in price. It says nothing about whether the stock is now a bargain.',
+  'correction': 'A fall of 10% or more from a recent high.',
+  'bear market': 'A fall of 20% or more from a high that lasts a while.',
+  'bull market': 'A long period of rising prices.',
+  '52-week high': 'The highest price a stock reached in the past year.',
+  'inflation': 'How fast prices of everyday things are rising. The Fed aims for about 2% a year.',
+  'CPI': 'Consumer Price Index: the government\'s main monthly measure of inflation.',
+  'PCE': 'Another inflation measure - the one the Fed officially targets.',
+  'core inflation': 'Inflation with food and energy left out, because those swing around a lot and hide the trend.',
+  'the Fed': 'The Federal Reserve, the US central bank. It sets the key interest rate and tries to keep inflation near 2% and unemployment low.',
+  'Federal Reserve': 'The US central bank, usually called "the Fed".',
+  'central bank': 'The public institution that controls a country\'s money and key interest rate. In the US, that\'s the Fed.',
+  'FOMC': 'The Fed committee that meets eight times a year to decide interest rates.',
+  'interest rate': 'The price of borrowing money, as a percent per year.',
+  'rate cut': 'When the Fed lowers its interest rate, making borrowing cheaper. Usually good for stocks.',
+  'rate hike': 'When the Fed raises its interest rate, making borrowing more expensive. Usually bad for stocks.',
+  'bond': 'A loan you make to a government or company. They pay you interest, then return your money at the end.',
+  'Treasury': 'A bond issued by the US government - considered the safest investment there is.',
+  'yield': 'The interest a bond pays you each year, as a percent of its price.',
+  '10-year Treasury yield': 'What the US government pays to borrow for 10 years. It sets mortgage rates and is the benchmark for everything else.',
+  'yield curve': 'A comparison of short-term and long-term interest rates. When short-term rates are higher (an "inverted" curve), it has often come before a recession.',
+  'basis point': 'One hundredth of a percent. 25 basis points = 0.25%.',
+  'recession': 'A period when the economy shrinks and unemployment rises, usually lasting months.',
+  'GDP': 'Gross domestic product: the total value of everything the economy produces. Its growth rate is how fast the economy is growing.',
+  'unemployment rate': 'The share of people looking for work who can\'t find a job.',
+  'jobs report': 'The government\'s monthly count of jobs added and the unemployment rate, released on the first Friday of the month.',
+  'jobless claims': 'How many people applied for unemployment benefits in a week - the fastest signal of rising layoffs.',
+  'credit spread': 'How much more interest a company pays to borrow than the government does. Wider spreads mean lenders are more worried.',
+  'high-yield': 'Bonds from riskier companies, which pay higher interest to make up for the risk. Also called "junk bonds".',
+  'VIX': 'The "fear gauge": a measure of how much the stock market is expected to swing. Under 15 is calm, over 25 is nervous.',
+  'liquidity': 'How much money is available in the financial system, or how easily something can be bought and sold.',
+  'balance sheet': 'For the Fed: the bonds it owns. When it shrinks its balance sheet, it takes money out of the system.',
+  'tariff': 'A tax on imported goods. It can raise prices and slow trade.',
+  'dollar': 'When the US dollar strengthens, US companies\' foreign sales are worth less and imports get cheaper.',
+  'small caps': 'Smaller companies. They depend more on the US economy and on borrowing, so they react more to both.',
+  'sector': 'A group of companies in the same kind of business, like technology or energy.',
+  'Stocktwits': 'A social network where investors post short messages about individual stocks.',
+  'Hacker News': 'A news site where software engineers and startup people share and discuss links.',
+  'Reddit': 'A discussion site; several of its forums are devoted to stocks and investing.',
+  'percentile': 'Where a number ranks against its own history. The 90th percentile means higher than 90% of past readings.',
+  'regime': 'The overall state the economy and markets are in, like "inflation high, growth slowing".',
+};
+// Longest terms first, so "10-year Treasury yield" wins over "Treasury" and "yield".
+const TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+const TERM_RE = new RegExp('(^|[^\\w-])(' +
+  TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\&]/g, m => m === '&' ? '&amp;' : '\\' + m)).join('|') +
+  ')(?![\\w-])', 'gi');
+const TERM_KEY = Object.fromEntries(TERMS.map(t => [esc(t).toLowerCase(), t]));
+
+// Wrap the first mention of each glossary term in already-escaped text. Only
+// in beginner mode - an expert does not need "yield" underlined forty times -
+// and only the first mention per block, so a paragraph is not a sea of dots.
+function gloss(escaped, used = new Set()) {
+  if (!beginner()) return escaped;
+  return escaped.replace(TERM_RE, (whole, pre, word) => {
+    const key = TERM_KEY[word.toLowerCase()];
+    if (!key || used.has(key)) return whole;
+    used.add(key);
+    return `${pre}<button class="term" data-term="${esc(key)}">${word}</button>`;
+  });
+}
+const g = text => gloss(esc(text));
+
+const pop = document.getElementById('pop');
+document.addEventListener('click', e => {
+  const term = e.target.closest('.term');
+  if (!term) { if (!e.target.closest('#pop')) pop.style.display = 'none'; return; }
+  e.stopPropagation();
+  e.preventDefault();
+  const key = term.dataset.term;
+  pop.innerHTML = `<b>${esc(key)}</b>${esc(GLOSSARY[key] || '')}`;
+  pop.style.display = 'block';
+  const r = term.getBoundingClientRect();
+  const width = Math.min(300, window.innerWidth - 24);
+  pop.style.maxWidth = width + 'px';
+  const left = Math.max(12, Math.min(r.left + window.scrollX, window.scrollX + window.innerWidth - width - 12));
+  pop.style.left = left + 'px';
+  pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.style.display = 'none'; });
+
+// -- formatting ------------------------------------------------------------
+
+const idOf = it => it.url || it.discussion_url || it.title;
 const EMPTY_REASONS = new Set(['baseline coverage', 'routine coverage']);
 
 const fmtAge = ts => {
@@ -329,15 +558,15 @@ const fmtNum = (v, d) => {
   if (v == null) return '—';
   const n = Number(v);
   if (!isFinite(n)) return '—';
-  // Thousands separators only above 10,000: below that they make a yield or a
-  // spread harder to read, not easier.
   return Math.abs(n) >= 10000 ? n.toLocaleString(undefined, {maximumFractionDigits: 0})
                               : n.toFixed(d == null ? 2 : d);
 };
 
+const fmtPrice = v => v == null ? '—' :
+  '$' + Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
 // A signed change, coloured only when the series has a direction that is
-// actually good or bad. Most of them do not: a rising dollar is not "bad", and
-// pretending otherwise is the most common way a macro dashboard misleads.
+// actually good or bad. Most macro series do not: a rising dollar is not "bad".
 function fmtChange(value, kind, good, decimals) {
   if (value == null) return '<span class="flat">—</span>';
   const n = Number(value);
@@ -346,9 +575,9 @@ function fmtChange(value, kind, good, decimals) {
   let cls = 'flat';
   if (Math.abs(n) > 1e-9 && good === 'up') cls = n > 0 ? 'pos' : 'neg';
   else if (Math.abs(n) > 1e-9 && good === 'down') cls = n > 0 ? 'neg' : 'pos';
-  else if (Math.abs(n) > 1e-9) cls = 'flat';
   return `<span class="${cls}">${esc(text)}</span>`;
 }
+const pct = v => fmtChange(v, 'pct', 'up', 1);
 
 function sparkSvg(points, width = 92, height = 22) {
   if (!points || points.length < 2) return '';
@@ -358,176 +587,324 @@ function sparkSvg(points, width = 92, height = 22) {
   const x = i => (i / (points.length - 1)) * (width - 2) + 1;
   const y = v => height - 1 - ((v - lo) / (hi - lo)) * (height - 2);
   const path = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join('');
-  // A zero line only when the series actually crosses zero - on a yield or an
-  // index it would be drawn off the bottom of the box and mean nothing.
   const zero = (lo < 0 && hi > 0)
     ? `<line x1="1" x2="${width - 1}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"
              stroke="currentColor" stroke-width=".5" opacity=".35"/>` : '';
   const last = points[points.length - 1];
+  const rising = last[1] >= points[0][1];
   return `<svg class="spark" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
     aria-hidden="true" style="color:var(--spark)">${zero}
     <path d="${path}" fill="none" stroke="currentColor" stroke-width="1.2"/>
-    <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last[1]).toFixed(1)}" r="1.6"
-      fill="var(--accent)"/></svg>`;
+    <circle cx="${x(points.length - 1).toFixed(1)}" cy="${y(last[1]).toFixed(1)}" r="1.8"
+      fill="${rising ? 'var(--up)' : 'var(--down)'}"/></svg>`;
 }
 
-// -- brief -----------------------------------------------------------------
+// -- today -----------------------------------------------------------------
 
-function renderBrief(market) {
+function stanceClass(score) { return score > 1 ? 'pos' : score < -1 ? 'neg' : ''; }
+
+function renderBrief() {
+  const market = state.market;
+  if (!market) return;
   const box = document.getElementById('brief-card');
   const brief = market.brief || {};
   const regime = market.regime || {};
-  if (!brief.lede && !regime.summary) {
-    box.innerHTML = `<div class="status">No brief yet. Run
+  const plain = regime.plain || {};
+  const usePlain = beginner();
+  const lede = usePlain ? (brief.plain_lede || plain.lede || brief.lede)
+                        : (brief.lede || regime.summary);
+  if (!lede) {
+    box.innerHTML = `<div class="status">No summary yet. Run
       <code>python -m finance.cli brief</code>.</div>`;
     return;
   }
-  const stance = regime.stance || '';
-  const cls = (regime.score || 0) > 1 ? 'pos' : (regime.score || 0) < -1 ? 'neg' : '';
-  const points = (brief.points || []).map(p => {
+  const used = new Set();
+  const points = (usePlain ? (brief.plain_points || brief.points) : brief.points) || [];
+  const pointsHtml = points.map(p => {
     const label = p.label ? `<span class="tag">${esc(p.label)}</span>` : '';
-    const text = p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.text)}</a>`
-                       : esc(p.text);
+    const body = usePlain ? gloss(esc(p.text), used) : esc(p.text);
+    const text = p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${body}</a>` : body;
     return `<li>${label}${text}</li>`;
   }).join('');
-  const tension = brief.tension || regime.tension || '';
-  const watch = (brief.watch || []).map(w =>
-    `<li><span class="tag">${w.estimated ? '~' : ''}${esc(fmtDay(w.on))}</span>${esc(w.title)}${
-      w.why ? ' — ' + esc(w.why) : ''}</li>`).join('');
+  const tension = usePlain ? (brief.plain_tension || plain.tension) : (brief.tension || regime.tension);
+  const events = (market.calendar || []).filter(e => Number(e.importance) <= (usePlain ? 1 : 2));
+  const seenTitles = new Set();
+  const watch = events.filter(e => {
+    const t = (usePlain && e.plain && e.plain.title) || e.title;
+    if (seenTitles.has(t)) return false;
+    seenTitles.add(t);
+    return true;
+  }).slice(0, usePlain ? 3 : 5).map(e => {
+    const title = (usePlain && e.plain && e.plain.title) || e.title;
+    const what = (usePlain && e.plain && e.plain.what) || firstSentence(e.detail);
+    return `<li><span class="tag">${e.estimated ? '~' : ''}${esc(fmtDay(e.on_date))}</span>${
+      esc(title)}${what ? ' — ' + (usePlain ? gloss(esc(what), used) : esc(what)) : ''}</li>`;
+  }).join('');
+  const stanceText = usePlain ? plainStance(regime.score || 0) : (regime.stance || '');
   box.innerHTML = `
-    ${stance ? `<div style="margin-bottom:7px"><span class="stance ${cls}">${esc(stance)}</span></div>` : ''}
-    <p class="lede">${esc(brief.lede || regime.summary)}</p>
-    ${points ? `<ul class="points">${points}</ul>` : ''}
-    ${tension ? `<div class="tension"><b>Where the reads disagree:</b> ${esc(tension)}</div>` : ''}
-    ${watch ? `<ul class="points" style="margin-top:10px">
-        <li style="border-top:0;color:var(--muted);font-size:11px;letter-spacing:.06em;
-                   text-transform:uppercase">What would change it</li>${watch}</ul>` : ''}`;
+    ${stanceText ? `<div style="margin-bottom:8px"><span class="stance ${stanceClass(regime.score || 0)}">${esc(stanceText)}</span></div>` : ''}
+    <p class="lede">${usePlain ? gloss(esc(lede), used) : esc(lede)}</p>
+    ${pointsHtml ? `<ul class="points">${pointsHtml}</ul>` : ''}
+    ${tension ? `<div class="callout"><b>${usePlain ? 'Something to notice:' : 'Where the reads disagree:'}</b>
+        ${usePlain ? gloss(esc(tension), used) : esc(tension)}</div>` : ''}
+    ${watch ? `<div class="small-head">${usePlain ? 'Coming up soon' : 'What would change it'}</div>
+      <ul class="points">${watch}</ul>` : ''}`;
   document.getElementById('brief-by').textContent =
-    brief.by ? `written by ${brief.by}, ${fmtAge(brief.generated_at)} ago` : '';
-  document.getElementById('disclaimer').textContent =
-    brief.disclaimer || (regime.disclaimer || '');
+    brief.by ? `Written by ${brief.by}, ${fmtAge(brief.generated_at)} ago.` : '';
 }
 
-// -- regime ----------------------------------------------------------------
+function plainStance(total) {
+  if (total >= 2) return 'Mostly good for stocks';
+  if (total <= -2) return 'Mostly tough for stocks';
+  return 'Mixed for stocks';
+}
+
+function firstSentence(text) {
+  const m = String(text || '').match(/^.*?[.!?](\s|$)/);
+  return m ? m[0].trim() : String(text || '');
+}
+
+// -- big picture -----------------------------------------------------------
 
 function dial(score) {
   const cls = score > 0 ? 'pos' : 'neg';
-  return '<span class="dial">' + [-2, -1, 1, 2].map(slot => {
+  return '<span class="dial" aria-hidden="true">' + [-2, -1, 1, 2].map(slot => {
     const on = score > 0 ? (slot > 0 && slot <= score) : (slot < 0 && slot >= score);
     return `<i class="${on ? 'on ' + cls : ''}"></i>`;
   }).join('') + '</span>';
 }
 
-function renderRegime(market) {
-  const regime = market.regime || {};
+function evidenceHtml(read) {
+  return (read.evidence || []).map(e =>
+    `<div class="ev"><span class="en">${esc(e.label)}</span>
+      <span>${fmtNum(e.value, e.decimals)}${esc(e.unit)}</span></div>
+     ${e.note ? `<div class="ed">${esc(e.note)}</div>` : ''}`).join('');
+}
+
+function renderRegime() {
+  const market = state.market;
+  if (!market) return;
   const box = document.getElementById('regime-tiles');
-  box.innerHTML = (regime.reads || []).map(read => {
-    const evidence = (read.evidence || []).map(e => {
-      const change = (e.changes || {}).m1;
-      return `<div class="ev"><span class="en">${esc(e.label)}</span>
-        <span>${fmtNum(e.value, e.decimals)}${esc(e.unit)}</span></div>
-        ${e.note ? `<div class="ed">${esc(e.note)}</div>` : ''}`;
-    }).join('');
+  const reads = (market.regime || {}).reads || [];
+  if (!reads.length) {
+    box.innerHTML = '<div class="status">No market data yet.</div>';
+    return;
+  }
+  box.innerHTML = reads.map(read => {
+    const p = read.plain || {};
+    if (beginner()) {
+      const used = new Set();
+      const cls = read.score > 0 ? 'pos' : read.score < 0 ? 'neg' : '';
+      return `<div class="tile" data-read="${esc(read.id)}">
+        <div class="top">${dial(read.score)}<span class="name">${esc(p.label || read.label)}</span>
+          <span class="stance ${cls}">${esc(p.stance || '')}</span></div>
+        <div class="state">${gloss(esc(p.now || read.state), used)}</div>
+        <div class="hint">What is this? ▸</div>
+        <div class="detail">
+          <p><span class="k">What it is.</span> ${gloss(esc(p.what || ''), used)}</p>
+          <p><span class="k">Why it matters to you.</span> ${gloss(esc(p.why_you || ''), used)}</p>
+          <details><summary style="cursor:pointer">The numbers behind it</summary>
+            <div style="margin:7px 0">${evidenceHtml(read)}</div></details>
+        </div></div>`;
+    }
     return `<div class="tile" data-read="${esc(read.id)}">
       <div class="top">${dial(read.score)}<span class="name">${esc(read.label)}</span></div>
       <div class="state">${esc(read.state)}</div>
       <div class="detail">
         <p><span class="k">Why it matters.</span> ${esc(read.why)}</p>
         <p><span class="k">What this reading means.</span> ${esc(read.means)}</p>
-        ${evidence ? `<div style="margin:7px 0">${evidence}</div>` : ''}
+        <div style="margin:7px 0">${evidenceHtml(read)}</div>
         <p><span class="k">Watch.</span> ${esc(read.watch)}</p>
         ${(read.missing || []).length
           ? `<p style="color:var(--warn)">Computed without: ${esc(read.missing.join(', '))}.</p>` : ''}
       </div></div>`;
-  }).join('') || '<div class="status">No market data yet. Run <code>finance.cli data</code>.</div>';
-  box.onclick = event => {
-    const tile = event.target.closest('.tile');
-    if (tile) tile.classList.toggle('open');
-  };
+  }).join('');
 }
+document.getElementById('regime-tiles').addEventListener('click', e => {
+  if (e.target.closest('.term, summary, details')) return;
+  const tile = e.target.closest('.tile');
+  if (tile) tile.classList.toggle('open');
+});
+
+// -- stocks ----------------------------------------------------------------
+
+const STOCK_TABS = [
+  ['trending', 'Trending'],
+  ['dipping', 'Popular, but falling'],
+  ['tech', 'Popular with tech people'],
+];
+const SIZE_WORDS = {
+  'giant': 'a giant', 'large': 'a large', 'mid-size': 'a mid-size',
+  'small': 'a small', 'tiny': 'a very small',
+};
+// Nasdaq's sector names, as the noun a sentence needs: "a large technology company".
+const SECTOR_NOUN = {
+  'Technology': 'technology company', 'Finance': 'financial company',
+  'Health Care': 'healthcare company', 'Consumer Discretionary': 'consumer company',
+  'Consumer Staples': 'consumer-staples company', 'Industrials': 'industrial company',
+  'Energy': 'energy company', 'Utilities': 'utility company', 'Real Estate': 'real-estate company',
+  'Telecommunications': 'telecom company', 'Basic Materials': 'materials company',
+};
+
+function renderStocks() {
+  const data = state.stocks;
+  const grid = document.getElementById('stock-grid');
+  if (!data) return;
+  const lists = data.lists || {};
+  if (!lists[state.stockTab]) state.stockTab = 'trending';
+  document.getElementById('stock-tabs').innerHTML = STOCK_TABS.map(([key, label]) =>
+    `<button class="tab" data-tab="${key}" aria-pressed="${key === state.stockTab}">${esc(label)}
+      <span class="n">${(lists[key] || []).length}</span></button>`).join('');
+  const note = (data.notes || {})[state.stockTab] || {};
+  document.getElementById('stock-note').innerHTML = note.what ? `
+    <p class="lead" style="margin-bottom:8px">${g(note.what)}</p>
+    <div class="callout warn" style="margin:0 0 12px"><b>Read this first:</b> ${g(note.careful)}</div>` : '';
+  const rows = lists[state.stockTab] || [];
+  grid.innerHTML = rows.length ? rows.map(stockCard).join('')
+    : '<div class="status">Nothing on this list today.</div>';
+  const asof = data.data_as_of ? `Data from ${fmtAge(data.data_as_of)} ago. ` : '';
+  document.getElementById('stock-asof').textContent = asof +
+    'Prices and company data from Nasdaq; discussion from Stocktwits, Reddit (via ApeWisdom) and Hacker News.';
+}
+
+function stockCard(r) {
+  const used = new Set();
+  const size = SIZE_WORDS[r.size] ? `${SIZE_WORDS[r.size]} ${SECTOR_NOUN[r.sector] || 'company'}` : '';
+  const moves = [];
+  if (r.pct_today != null) moves.push(`<span><span class="lbl">Today</span> ${pct(r.pct_today)}</span>`);
+  if (r.chg_1m != null) moves.push(`<span><span class="lbl">1 month</span> ${pct(r.chg_1m)}</span>`);
+  if (r.off_high != null && r.off_high <= -5) moves.push(
+    `<span title="Its highest price in the past year was ${fmtPrice(r.high_52w)}"><span class="lbl">From 1-yr high</span> ${pct(r.off_high)}</span>`);
+  const why = r.why ? `<div class="why">${gloss(esc(r.why), used)}${
+    r.why_source ? ` <span class="src">— ${r.why_url ? `<a href="${esc(r.why_url)}" target="_blank" rel="noopener">${esc(r.why_source)}</a>` : esc(r.why_source)}</span>` : ''}</div>` : '';
+  const news = r.news && !(r.why || '').startsWith('In the news')
+    ? `<div class="why"><span class="src">In the news:</span> <a href="${esc(r.news.url)}" target="_blank" rel="noopener">${esc(r.news.title)}</a></div>` : '';
+  const badges = (r.badges || []).map(b => `<span class="badge">${esc(b)}</span>`).join('');
+  const nasdaq = `https://www.nasdaq.com/market-activity/stocks/${encodeURIComponent(r.symbol.toLowerCase().replace('/', '.'))}`;
+  return `<article class="stock">
+    <div class="shead"><span class="sym">${esc(r.symbol)}</span><span class="nm" title="${esc(r.name)}">${esc(r.name)}</span>
+      ${sparkSvg(r.spark, 70, 20)}</div>
+    <div class="what">${r.what ? gloss(esc(r.what), used) + ' ' : ''}${size ? `${esc(size[0].toUpperCase() + size.slice(1))}, worth ${esc(r.cap_text)}.` : ''}
+      <span class="adv-only">${esc(r.industry || '')}</span></div>
+    <div class="moves"><span><b>${fmtPrice(r.price)}</b></span>${moves.join('')}</div>
+    ${why}${news}
+    ${badges ? `<div class="badges">${badges}</div>` : ''}
+    <div class="slinks"><a href="${nasdaq}" target="_blank" rel="noopener">Chart &amp; details ↗</a></div>
+  </article>`;
+}
+
+document.getElementById('stock-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  state.stockTab = tab.dataset.tab;
+  LS.set('stockTab', state.stockTab);
+  renderStocks();
+});
 
 // -- cross-asset -----------------------------------------------------------
 
-function renderSnapshot(market) {
+// What each fund holds, for someone who does not know what "XLP" is.
+const ASSET_PLAIN = {
+  SPY: 'The 500 biggest US companies', QQQ: '100 big Nasdaq companies (tech-heavy)',
+  IWM: 'About 2,000 smaller US companies', EFA: 'Big companies in Europe, Japan and Australia',
+  EEM: 'Companies in emerging economies (China, India, Brazil…)',
+  XLK: 'US technology companies', XLF: 'Banks and insurers', XLE: 'Oil and gas companies',
+  XLY: 'Things people want: shops, cars, travel', XLP: 'Things people need: food, soap, drinks',
+  XLU: 'Electricity and water utilities', XLV: 'Healthcare and drug companies',
+  TLT: 'Long-term US government bonds', LQD: 'Bonds from big, safe companies',
+  HYG: 'Bonds from riskier companies ("junk")', GLD: 'Gold',
+};
+
+function renderSnapshot() {
+  const market = state.market;
+  if (!market) return;
   const rows = market.snapshot || [];
   const box = document.getElementById('snapshot');
   if (!rows.length) {
-    box.innerHTML = `<div class="card"><div class="status">No price snapshot in this
-      export - the quote source was unavailable on the last run.</div></div>`;
+    box.innerHTML = `<div class="card"><div class="status">No price data in this update yet.</div></div>`;
     return;
   }
-  const groups = {equity: 'Equities', sector: 'Sectors', bond: 'Bonds & credit',
-                  commodity: 'Commodities'};
-  const cells = ['1d', '1w', '1m', '3m', 'ytd'];
-  let html = `<div class="card"><table><thead><tr><th>Asset</th>` +
-    cells.map(c => `<th class="${c === '3m' ? 'opt' : ''}">${c.toUpperCase()}</th>`).join('') +
+  const groups = beginner()
+    ? {equity: 'Stocks', sector: 'Stocks by industry', bond: 'Bonds', commodity: 'Gold'}
+    : {equity: 'Equities', sector: 'Sectors', bond: 'Bonds & credit', commodity: 'Commodities'};
+  const cells = beginner() ? [['1w', '1 week'], ['1m', '1 month'], ['ytd', 'This year']]
+                           : [['1d', '1D'], ['1w', '1W'], ['1m', '1M'], ['3m', '3M'], ['ytd', 'YTD']];
+  let html = `<div class="card"><table><thead><tr><th>${beginner() ? 'What it tracks' : 'Asset'}</th>` +
+    cells.map(([k, label]) => `<th class="${k === '3m' ? 'opt' : ''}">${label}</th>`).join('') +
     `</tr></thead><tbody>`;
   for (const [key, label] of Object.entries(groups)) {
     const group = rows.filter(r => r.group === key);
     if (!group.length) continue;
     html += `<tr class="famhead"><td colspan="${cells.length + 1}">${esc(label)}</td></tr>`;
     for (const row of group) {
-      html += `<tr><td>${esc(row.label)} <span class="sub">${esc(row.symbol)}</span></td>` +
-        cells.map(c => `<td class="num ${c === '3m' ? 'opt' : ''}">${
-          fmtChange((row.changes || {})[c], 'pct', 'up', 1)}</td>`).join('') + `</tr>`;
+      const name = beginner()
+        ? `${esc(ASSET_PLAIN[row.symbol] || row.label)}<span class="asset-sub">${esc(row.symbol)} fund</span>`
+        : `${esc(row.label)} <span class="sub">${esc(row.symbol)}</span>`;
+      html += `<tr><td>${name}</td>` + cells.map(([k]) =>
+        `<td class="num ${k === '3m' ? 'opt' : ''}">${pct((row.changes || {})[k])}</td>`).join('') + `</tr>`;
     }
   }
   html += `</tbody></table>`;
   const ratios = Object.entries(market.ratios || {});
-  if (ratios.length) {
+  if (ratios.length && !beginner()) {
     html += `<table style="margin-top:12px"><thead><tr><th>Leadership</th>
       <th>1M</th><th>3M</th><th class="opt">1Y</th></tr></thead><tbody>`;
     for (const [pair, data] of ratios) {
       html += `<tr class="metric" data-ratio="${esc(pair)}">
         <td>${esc(data.label || pair)} <span class="sub">${esc(pair)}</span></td>
-        <td class="num">${fmtChange(data['1m'], 'pct', 'up', 1)}</td>
-        <td class="num">${fmtChange(data['3m'], 'pct', 'up', 1)}</td>
-        <td class="num opt">${fmtChange(data['1y'], 'pct', 'up', 1)}</td></tr>
+        <td class="num">${pct(data['1m'])}</td><td class="num">${pct(data['3m'])}</td>
+        <td class="num opt">${pct(data['1y'])}</td></tr>
         <tr class="why" data-for="${esc(pair)}" hidden><td colspan="4">
           <div class="whybox">${esc(data.why || '')}</div></td></tr>`;
     }
     html += `</tbody></table>`;
   }
   box.innerHTML = html + `</div>`;
-  box.onclick = event => {
-    const row = event.target.closest('tr.metric');
-    if (!row) return;
-    const detail = box.querySelector(`tr.why[data-for="${row.dataset.ratio}"]`);
-    if (detail) detail.hidden = !detail.hidden;
-  };
 }
+document.getElementById('snapshot').addEventListener('click', e => {
+  const row = e.target.closest('tr.metric');
+  if (!row) return;
+  const detail = e.currentTarget.querySelector(`tr.why[data-for="${row.dataset.ratio}"]`);
+  if (detail) detail.hidden = !detail.hidden;
+});
 
 // -- calendar --------------------------------------------------------------
 
-function renderCalendar(market) {
-  const events = (market.calendar || []).slice(0, 26);
+function renderCalendar() {
+  const market = state.market;
+  if (!market) return;
   const box = document.getElementById('cal-list');
+  // Beginners see what can actually move the market; the monthly options
+  // expiry and minor surveys are noise until you know what they are.
+  const events = (market.calendar || [])
+    .filter(e => !beginner() || Number(e.importance) <= 2).slice(0, beginner() ? 14 : 26);
   if (!events.length) {
-    box.innerHTML = `<li><span class="ttl">No calendar in this export.</span></li>`;
+    box.innerHTML = `<li><span class="ttl">No calendar in this update.</span></li>`;
     return;
   }
   const today = new Date().toISOString().slice(0, 10);
   box.innerHTML = events.map(e => {
-    const days = Math.round((new Date(e.on_date + 'T12:00:00Z') -
-                             new Date(today + 'T12:00:00Z')) / 864e5);
-    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days}d`;
+    const days = Math.round((new Date(e.on_date + 'T12:00:00Z') - new Date(today + 'T12:00:00Z')) / 864e5);
+    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
     const stars = '★'.repeat(Math.max(0, 4 - Number(e.importance)));
+    const plain = e.plain || {};
+    const title = beginner() && plain.title ? plain.title : e.title;
+    const detail = beginner() && plain.what ? g(plain.what) : esc(e.detail || '');
     return `<li><span class="when ${days === 0 ? 'today' : ''}">
-        <b>${esc(e.on_date.slice(5))}</b> ${esc(when)}</span>
-      <span class="imp">${stars}</span>
-      <span class="ttl">${e.estimated ? '<span class="est">~</span> ' : ''}${esc(e.title)}
+        <b>${e.estimated ? '~' : ''}${esc(fmtDay(e.on_date))}</b> ${esc(when)}</span>
+      <span class="imp" title="How much this usually moves markets">${stars}</span>
+      <span class="ttl">${esc(title)}
         ${e.time_et ? `<span class="est">${esc(e.time_et)} ET</span>` : ''}
-        <span class="d">${esc(e.detail || '')}${
-          e.url ? ` <a href="${esc(e.url)}" target="_blank" rel="noopener">source</a>` : ''}</span>
+        <span class="d">${detail}${e.url && !beginner() ? ` <a href="${esc(e.url)}" target="_blank" rel="noopener">source</a>` : ''}</span>
       </span></li>`;
   }).join('');
-  box.onclick = event => {
-    const row = event.target.closest('li');
-    if (row && !event.target.closest('a')) row.classList.toggle('open');
-  };
 }
+document.getElementById('cal-list').addEventListener('click', e => {
+  const row = e.target.closest('li');
+  if (row && !e.target.closest('a, .term')) row.classList.toggle('open');
+});
 
-// -- metrics ---------------------------------------------------------------
+// -- metrics (advanced) ----------------------------------------------------
 
 function renderMetrics() {
   const market = state.market;
@@ -536,12 +913,11 @@ function renderMetrics() {
   const metrics = (market.metrics || []).filter(m => (m.tier || 3) <= state.tier);
   const box = document.getElementById('metrics-table');
   if (!metrics.length) {
-    box.innerHTML = `<div class="card"><div class="status">No metrics in this export.</div></div>`;
+    box.innerHTML = `<div class="card"><div class="status">No metrics in this update.</div></div>`;
     return;
   }
   const windows = ['1d', '1w', '1m', '3m', '6m', '1y'];
-  let html = `<div class="card"><table><thead><tr>
-    <th>Indicator</th><th>Latest</th>` +
+  let html = `<div class="card"><table><thead><tr><th>Indicator</th><th>Latest</th>` +
     windows.map(w => `<th class="${w === '1d' || w === '6m' ? 'opt' : ''}">${w}</th>`).join('') +
     `<th class="opt">Percentile</th><th class="opt">Trend</th></tr></thead><tbody>`;
   for (const [family, label] of Object.entries(families)) {
@@ -550,18 +926,15 @@ function renderMetrics() {
     html += `<tr class="famhead"><td colspan="${windows.length + 4}">${esc(label)}</td></tr>`;
     for (const m of group) {
       const rank = m.pct_rank == null ? '' :
-        `<span class="rankbar" title="${m.pct_rank}th percentile of the last ${
-          m.lookback_years} years"><i style="left:${
+        `<span class="rankbar" title="${m.pct_rank}th percentile of the last ${m.lookback_years} years"><i style="left:${
           Math.max(0, Math.min(96, m.pct_rank * 0.96))}%"></i></span>
          <span class="sub">${Math.round(m.pct_rank)}</span>`;
       html += `<tr class="metric" data-id="${esc(m.id)}">
         <td>${esc(m.label)}</td>
-        <td class="num"><b>${fmtNum(m.value, m.decimals)}</b>
-          <span class="sub">${esc(m.unit)}</span></td>` +
+        <td class="num"><b>${fmtNum(m.value, m.decimals)}</b> <span class="sub">${esc(m.unit)}</span></td>` +
         windows.map(w => `<td class="num ${w === '1d' || w === '6m' ? 'opt' : ''}">${
           fmtChange((m.changes || {})[w], m.change_kind, m.good, m.decimals)}</td>`).join('') +
-        `<td class="num opt">${rank}</td>
-         <td class="opt">${sparkSvg(m.spark)}</td></tr>
+        `<td class="num opt">${rank}</td><td class="opt">${sparkSvg(m.spark)}</td></tr>
         <tr class="why" data-for="${esc(m.id)}" hidden><td colspan="${windows.length + 4}">
           <div class="whybox">
             <p><span class="k">Why it matters.</span> ${esc(m.why)}</p>
@@ -574,20 +947,18 @@ function renderMetrics() {
     }
   }
   box.innerHTML = html + `</tbody></table></div>`;
-  box.onclick = event => {
-    const row = event.target.closest('tr.metric');
-    if (!row) return;
-    const detail = box.querySelector(`tr.why[data-for="${row.dataset.id}"]`);
-    if (detail) detail.hidden = !detail.hidden;
-  };
 }
+document.getElementById('metrics-table').addEventListener('click', e => {
+  const row = e.target.closest('tr.metric');
+  if (!row) return;
+  const detail = e.currentTarget.querySelector(`tr.why[data-for="${row.dataset.id}"]`);
+  if (detail) detail.hidden = !detail.hidden;
+});
 
 // -- news ------------------------------------------------------------------
 
 function markSeen(it) {
   state.seen.add(idOf(it));
-  // Unbounded growth would eventually blow the 5MB quota; a month of daily
-  // reading is a few thousand keys, so keep the newest 4000.
   const keep = [...state.seen].slice(-4000);
   state.seen = new Set(keep);
   LS.set('seen', keep);
@@ -596,7 +967,7 @@ function markSeen(it) {
 function withinWindow(it) {
   if (!state.days) return true;
   const ts = it.published_ts;
-  if (!ts) return true;  // undated is "current until proven otherwise"
+  if (!ts) return true;
   return (Date.now() - new Date(ts).getTime()) <= state.days * 864e5;
 }
 
@@ -611,6 +982,8 @@ function visible() {
   return state.items.filter(it =>
     withinWindow(it) && matchesQuery(it)
     && (!state.cats.size || state.cats.has(it.category || 'other'))
+    // Beginners never see items that matched no market subject at all.
+    && !(beginner() && (it.category || 'other') === 'other')
     && !(state.hideSeen && state.seen.has(idOf(it))));
 }
 
@@ -618,8 +991,6 @@ function sortItems(rows) {
   const key = state.sort;
   return rows.slice().sort((a, b) => {
     if (key === 'published_ts') return (b.published_ts || '').localeCompare(a.published_ts || '');
-    // Missing values sort last rather than as zero: "not measured" is not the
-    // same claim as "measured, and it was nothing".
     const av = a[key] == null ? -1 : a[key], bv = b[key] == null ? -1 : b[key];
     return bv - av || (b.impact || 0) - (a.impact || 0);
   });
@@ -629,45 +1000,95 @@ function alsoHtml(it) {
   if (!it.also || !it.also.length) return '';
   const links = it.also.filter(a => a.url).slice(0, 4).map(a =>
     `<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.source)}</a>`);
-  return links.length ? `<span class="dot"></span><span class="also">also: ${
-    links.join(', ')}</span>` : '';
+  return links.length ? `<span class="dot"></span><span class="also">also: ${links.join(', ')}</span>` : '';
 }
+
+// Source ids are machine names ("cnbc_economy"); a beginner wants "CNBC".
+const SOURCE_NAMES = {
+  fed_press: 'Federal Reserve', fed_speeches: 'Fed speech', fed_testimony: 'Fed testimony',
+  fed_notes: 'Fed research', bea: 'BEA (gov. statistics)', sec: 'SEC', ecb: 'European Central Bank',
+  nyfed_research: 'NY Fed research', boe_research: 'Bank of England research',
+  wsj_markets: 'Wall Street Journal', wsj_business: 'Wall Street Journal', ft: 'Financial Times',
+  economist_fin: 'The Economist', cnbc_economy: 'CNBC', cnbc_finance: 'CNBC',
+  cnbc_earnings: 'CNBC', cnbc_energy: 'CNBC', marketwatch: 'MarketWatch',
+  yahoo_finance: 'Yahoo Finance', seekingalpha: 'Seeking Alpha', investing_com: 'Investing.com',
+  calculatedrisk: 'Calculated Risk', fedguy: 'Fed Guy', macrocompass: 'The Macro Compass',
+  ritholtz: 'The Big Picture', commonsense: 'A Wealth of Common Sense', wolfstreet: 'Wolf Street',
+  mishtalk: 'Mish Talk', reddit: 'Reddit',
+};
+const sourceName = s => beginner() ? (SOURCE_NAMES[s] || s) : s;
 
 function itemHtml(it) {
   const seen = state.seen.has(idOf(it));
-  const score = it.score == null ? '—' : Math.round(it.score);
-  const impact = it.impact == null ? '' : Math.round(it.impact);
   const link = it.url || it.discussion_url || '#';
-  const bits = [`<span class="src">${esc(it.source)}</span>`];
-  if ((it.tier || 3) <= 1) bits.push(`<span class="t1">primary</span>`);
-  if (it.published_ts) bits.push(`<span class="dot">${esc(fmtAge(it.published_ts))}</span>`);
+  const bits = [`<span class="srcn">${esc(sourceName(it.source))}</span>`];
+  if ((it.tier || 3) <= 1) bits.push(`<span class="t1">${beginner() ? 'official' : 'primary'}</span>`);
+  if (it.published_ts) bits.push(`<span class="dot">${esc(fmtAge(it.published_ts))} ago</span>`);
   const cat = state.categories[it.category];
   if (cat) bits.push(`<span class="dot"><span class="mchip">${esc(cat)}</span></span>`);
-  for (const asset of (it.assets || []).slice(0, 3)) {
+  if (!beginner()) for (const asset of (it.assets || []).slice(0, 3)) {
     if (state.assets[asset]) bits.push(`<span class="mchip">${esc(state.assets[asset])}</span>`);
   }
-  // The scorers' fallback strings say nothing, and repeating "baseline
-  // coverage" under two hundred rows is worse than saying nothing.
-  if (it.score_reason && !EMPTY_REASONS.has(it.score_reason.trim().toLowerCase()))
-    bits.push(`<span class="dot why">${esc(it.score_reason)}</span>`);
-  return `<article class="item${seen ? ' seen' : ''}" data-i="${it._i}">
-    <div class="scores">
+  // The free heuristic's reasons are expert shorthand ("drives everything
+  // downstream"); only the model's, which it is told to write for a beginner,
+  // are shown in beginner mode.
+  const byModel = it.scored_by && it.scored_by !== 'heuristic';
+  const reason = it.score_reason && !EMPTY_REASONS.has(it.score_reason.trim().toLowerCase())
+                 && (byModel || !beginner()) ? it.score_reason : '';
+  let left;
+  if (beginner()) {
+    // Two numbers per row is a lot to decode on day one. Beginners get two
+    // plain flags instead - see flagCuts for where the lines are drawn.
+    const flags = [];
+    if ((it.impact || 0) >= cuts.big) flags.push('<span class="flag imp">Big</span>');
+    if (it.score != null && it.score >= (byModel ? cuts.youModel : cuts.youHeuristic))
+      flags.push('<span class="flag you">For you</span>');
+    left = `<div class="scores" style="flex-basis:52px">${flags.join('<br>')}</div>`;
+  } else {
+    const score = it.score == null ? '—' : Math.round(it.score);
+    const impact = it.impact == null ? '' : Math.round(it.impact);
+    left = `<div class="scores">
       <div class="sc${it.score != null && it.score < 50 ? ' low' : ''}"
            title="relevance to your profile (${esc(it.scored_by || 'unscored')})">${score}</div>
       <div class="im${impact !== '' && impact >= 60 ? ' hi' : ''}"
-           title="market impact: ${esc(it.impact_reason || '')}">${
-             impact === '' ? '' : '⇡' + impact}</div>
-    </div>
+           title="market impact: ${esc(it.impact_reason || '')}">${impact === '' ? '' : '⇡' + impact}</div></div>`;
+  }
+  return `<article class="item${seen ? ' seen' : ''}" data-i="${it._i}">${left}
     <div class="body">
       <p class="title"><a href="${esc(link)}" target="_blank" rel="noopener">${esc(it.title)}</a></p>
+      ${reason ? `<div class="meta"><span class="whyline">${beginner() ? g(reason) : esc(reason)}</span></div>` : ''}
       <div class="meta">${bits.join(' ')}${alsoHtml(it)}</div>
       ${it.summary ? `<div class="summary">${esc(it.summary)}</div>` : ''}
     </div></article>`;
 }
 
+// Where the beginner flags are drawn. Relative, not fixed: impact scores in a
+// normal week top out around 20-35, so any absolute line either flags nothing
+// or everything. "Big" is roughly the top 8% of what is on screen. "For you"
+// uses the model's own scale (70+ is about the top 7% in practice); for the
+// free heuristic, which has no idea who you are, it falls back to the same
+// top-8% rule.
+let cuts = { big: 999, youModel: 70, youHeuristic: 999 };
+function quantile(values, q) {
+  const v = values.filter(x => x != null).sort((a, b) => a - b);
+  return v.length ? v[Math.min(v.length - 1, Math.floor(q * v.length))] : null;
+}
+function flagCuts(rows) {
+  const big = quantile(rows.map(r => r.impact), 0.92);
+  const heur = quantile(rows.filter(r => r.scored_by === 'heuristic').map(r => r.score), 0.92);
+  cuts = { big: Math.max(18, big ?? 999), youModel: 70, youHeuristic: Math.max(25, heur ?? 999) };
+}
+
 let rendered = [];
 const GROUP_LIMIT = 8;
 const FLAT_PAGE = 20;
+
+// Horizon headings, reworded for a beginner as the question they answer.
+const HORIZON_PLAIN = {
+  months: ['Still matters in months', 'Big changes worth understanding properly'],
+  week: ['Matters this week or two', 'Setting up what happens next'],
+  day: ["Today's moves", 'Mostly noise by tomorrow - skim or skip'],
+};
 
 function moreButton(key, hidden) {
   return `<button class="more" data-more="${esc(key)}">show ${hidden} more</button>`;
@@ -675,17 +1096,16 @@ function moreButton(key, hidden) {
 
 function renderNews() {
   const rows = sortItems(visible());
+  flagCuts(rows);
   rendered = rows;
   rows.forEach((it, i) => { it._i = i; });
   const list = document.getElementById('list');
+  const group = beginner() ? 'horizon' : state.group;
 
   if (!rows.length) {
-    list.innerHTML = `<p class="empty">Nothing matches. Widen the window or clear the filters.</p>`;
-  } else if (state.group && state.sort !== 'published_ts') {
-    // Grouping only makes sense when the ordering is a judgement. Under
-    // "Newest" the whole point is one continuous stream.
-    const isHorizon = state.group === 'horizon';
-    const labels = isHorizon ? state.horizons : state.categories;
+    list.innerHTML = `<p class="empty">Nothing matches. Try a longer time window or clear the filters.</p>`;
+  } else if (group && state.sort !== 'published_ts') {
+    const isHorizon = group === 'horizon';
     const order = isHorizon ? ['months', 'week', 'day'] : Object.keys(state.categories);
     const groups = new Map();
     for (const it of rows) {
@@ -695,17 +1115,23 @@ function renderNews() {
     }
     const ordered = [...groups.entries()].sort((a, b) => {
       const ai = order.indexOf(a[0]), bi = order.indexOf(b[0]);
-      // Horizon has a meaningful fixed order (most durable first); categories
-      // do not, so those fall back to whichever had the strongest item.
       if (isHorizon) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
       return (b[1][0].score || 0) - (a[1][0].score || 0);
     });
     list.innerHTML = ordered.map(([key, items]) => {
       const open = state.expanded.has(key);
-      const shown = open ? items : items.slice(0, GROUP_LIMIT);
+      const limit = beginner() ? 6 : GROUP_LIMIT;
+      const shown = open ? items : items.slice(0, limit);
       const hidden = items.length - shown.length;
-      return `<h3 class="group-head">${esc(labels[key] || key)} · ${items.length}</h3>` +
-        shown.map(itemHtml).join('') + (hidden ? moreButton(key, hidden) : '');
+      let head;
+      if (isHorizon && beginner() && HORIZON_PLAIN[key]) {
+        head = `${esc(HORIZON_PLAIN[key][0])} · ${items.length} <span class="gsub">— ${esc(HORIZON_PLAIN[key][1])}</span>`;
+      } else {
+        const labels = isHorizon ? state.horizons : state.categories;
+        head = `${esc(labels[key] || key)} · ${items.length}`;
+      }
+      return `<h3 class="group-head">${head}</h3>` + shown.map(itemHtml).join('') +
+        (hidden ? moreButton(key, hidden) : '');
     }).join('');
   } else {
     const shown = rows.slice(0, state.flatShown);
@@ -713,9 +1139,6 @@ function renderNews() {
     list.innerHTML = shown.map(itemHtml).join('') +
       (hidden ? moreButton('', Math.min(hidden, FLAT_PAGE)) : '');
   }
-
-  const unseen = rows.filter(it => !state.seen.has(idOf(it))).length;
-  document.getElementById('counts').textContent = `${rows.length} match · ${unseen} unread`;
   renderChips();
   restoreCursor();
 }
@@ -736,10 +1159,9 @@ function resetPaging() {
 
 function renderChips() {
   const counts = {};
-  state.items.filter(it => withinWindow(it) && matchesQuery(it))
+  state.items.filter(it => withinWindow(it) && matchesQuery(it)
+                           && !(beginner() && (it.category || 'other') === 'other'))
     .forEach(it => { const c = it.category || 'other'; counts[c] = (counts[c] || 0) + 1; });
-  // Taxonomy order, not count order: a filter you reach for daily should be in
-  // the same place every day.
   const order = Object.keys(state.categories);
   document.getElementById('cats').innerHTML = Object.entries(counts)
     .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
@@ -747,8 +1169,6 @@ function renderChips() {
         aria-pressed="${state.cats.has(cat)}">${esc(state.categories[cat] || cat)}
         <span class="n">${n}</span></button>`).join('');
 }
-
-// -- interaction -----------------------------------------------------------
 
 function moveCursor(delta) {
   const nodes = [...document.querySelectorAll('.item')];
@@ -771,8 +1191,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'j') { moveCursor(1); e.preventDefault(); }
   else if (e.key === 'k') { moveCursor(-1); e.preventDefault(); }
   else if (e.key === 'o' || e.key === 'Enter') {
-    if (it) { markSeen(it); window.open(it.url || it.discussion_url, '_blank', 'noopener');
-              renderNews(); }
+    if (it) { markSeen(it); window.open(it.url || it.discussion_url, '_blank', 'noopener'); renderNews(); }
   } else if (e.key === 'm') {
     if (it) { markSeen(it); renderNews(); }
   } else if (e.key === ' ') {
@@ -782,6 +1201,7 @@ document.addEventListener('keydown', e => {
 });
 
 document.getElementById('list').addEventListener('click', e => {
+  if (e.target.closest('.term')) return;
   const more = e.target.closest('.more');
   if (more) {
     const key = more.dataset.more;
@@ -793,8 +1213,6 @@ document.getElementById('list').addEventListener('click', e => {
   if (!node) return;
   const it = rendered[+node.dataset.i];
   if (e.target.closest('a')) {
-    // Opening it is what "read" means; re-rendering now would yank the list out
-    // from under the click, so just grey the row in place.
     if (it) { markSeen(it); node.classList.add('seen'); }
     return;
   }
@@ -816,6 +1234,7 @@ seg('window-seg', 'days', Number);
 seg('sort-seg', 'sort', String);
 seg('group-seg', 'group', String);
 seg('tier-seg', 'tier', Number, renderMetrics);
+seg('mode-seg', 'mode', String, applyMode);
 
 document.getElementById('cats').addEventListener('click', e => {
   const button = e.target.closest('.chip');
@@ -846,6 +1265,139 @@ seenBox.addEventListener('change', () => {
   renderNews();
 });
 
+// -- learn -----------------------------------------------------------------
+// Seven lessons, each a few minutes, in the order that makes the rest of the
+// page make sense. Written to teach the machinery, never to recommend a
+// purchase: the goal is a reader who can judge things for themselves.
+
+const LESSONS = [
+  ['What a stock is, and why its price moves', 3, `
+    <p>A stock is a small slice of ownership in a company. If you own one share of a
+    company with a million shares, you own one millionth of it - including one millionth
+    of its future profits.</p>
+    <p>So a stock's price is really a bet on <b>how much money the company will make in
+    the future</b>. Prices move when that bet changes:</p>
+    <ul>
+      <li><b>News about the company</b> - a great product launch, a bad earnings report, a lost customer.</li>
+      <li><b>News about the whole economy</b> - if people are losing jobs, most companies will earn less.</li>
+      <li><b>Interest rates</b> - this one is less obvious, and it's the next lesson.</li>
+    </ul>
+    <p>That's why a company can report record profits and its stock can still fall: if
+    investors expected even more, the bet gets revised down.</p>`],
+  ['Why interest rates move the whole market', 4, `
+    <p>Imagine a government bond that pays you a guaranteed 5% a year. Why would you buy a
+    risky stock instead? Only if you expect it to earn clearly more than 5%.</p>
+    <p>Now imagine the bond only pays 1%. Suddenly almost any decent stock looks attractive
+    by comparison. This is the core idea: <b>interest rates are the yardstick every
+    investment is measured against</b>. When rates go up, stocks have to look better to
+    compete, so their prices usually fall. When rates go down, stock prices usually rise.</p>
+    <p>It hits some stocks harder than others. A company whose profits are mostly far in the
+    future - many tech and growth companies - is hurt most by higher rates, because money
+    promised years from now is worth less when you can earn a good return safely today.</p>
+    <p>On this page, the <b>Long-term interest rates</b> card tracks this yardstick.</p>`],
+  ['What the Fed does, and why everyone watches it', 4, `
+    <p>The Federal Reserve ("the Fed") is the US central bank. It has two jobs: keep prices
+    stable (inflation near 2% a year) and keep unemployment low.</p>
+    <p>Its main tool is one interest rate. Every other rate - mortgages, car loans,
+    savings accounts, company borrowing - is built on top of it.</p>
+    <ul>
+      <li>When inflation is too high, the Fed <b>raises</b> rates. Borrowing gets expensive,
+      people and companies spend less, prices cool - and stocks usually suffer.</li>
+      <li>When the economy is weak, the Fed <b>cuts</b> rates to encourage spending - and
+      stocks usually benefit.</li>
+    </ul>
+    <p>The Fed meets eight times a year. Those dates are in <b>Coming up</b>, and they're
+    among the most important days on the calendar. Markets often move before the Fed acts,
+    because investors try to guess what it will do.</p>`],
+  ['Inflation: the first domino', 3, `
+    <p>Inflation is how fast prices rise. The Fed aims for 2% a year.</p>
+    <p>It's the first domino because it decides what the Fed does. The chain goes:</p>
+    <ul>
+      <li>Inflation too high → the Fed keeps rates high → borrowing stays expensive →
+      stocks have a tougher time.</li>
+      <li>Inflation cooling → the Fed can cut rates → borrowing gets cheaper → stocks
+      usually do better.</li>
+    </ul>
+    <p>That's why a single inflation report (called CPI) can move the whole market in a
+    morning. What matters is whether it came in <b>higher or lower than investors
+    expected</b> - not the number on its own.</p>
+    <p>The <b>big picture</b> cards follow this same chain, in order.</p>`],
+  ['Owning the whole market vs. picking stocks', 4, `
+    <p>There are two broad ways to own stocks.</p>
+    <p><b>Picking individual stocks.</b> You choose specific companies. If you choose well, you
+    can do better than the market; if not, worse. One company can fall a lot - even to zero.</p>
+    <p><b>Index funds.</b> You buy a fund that owns every company in an index, like the
+    S&amp;P 500's 500 biggest US companies. You get the market's average result, with far
+    less risk from any one company going wrong.</p>
+    <p>Some facts worth knowing, whatever you decide:</p>
+    <ul>
+      <li>Over long periods, most professional fund managers who pick stocks have done
+      <b>worse</b> than a simple index fund, once their fees are counted. S&amp;P's long-running
+      SPIVA reports track this every year.</li>
+      <li>Concentration cuts both ways. A portfolio mostly in one industry - tech, say - rises
+      faster when that industry does well and falls harder when it doesn't.</li>
+      <li>Fees compound over decades just like returns do. A 1% yearly fee takes a large share
+      of the final result over 30 years.</li>
+    </ul>
+    <p>This page can't tell you which approach suits you - that depends on your situation.
+    It can help you understand what you own and why it's moving.</p>`],
+  ['Trending, hype and dips: how not to get fooled', 4, `
+    <p>The <b>Stocks people are watching</b> lists show where attention is. Attention is useful
+    to know about - and easy to be misled by.</p>
+    <ul>
+      <li><b>Trending usually means the news is already out.</b> By the time a stock is the
+      top topic online, the price has usually already moved.</li>
+      <li><b>A dip isn't automatically a discount.</b> Stocks fall for reasons. Before
+      assuming a stock will bounce back, find out <i>why</i> it fell. Plenty never recover
+      their old high.</li>
+      <li><b>A loved product isn't the same as a good investment.</b> Engineers may love a
+      company's product while its stock is already priced as if everyone knows how good it is.</li>
+      <li><b>Urgency is a warning sign.</b> "Buy before it's too late" is how hype sounds.
+      The forces on this page work over months and years.</li>
+    </ul>
+    <p>A good habit: for any stock you're curious about, read one story explaining why it's
+    moving, and one explaining the case against it.</p>`],
+  ['How to use this page in two minutes a day', 2, `
+    <ul>
+      <li><b>Today</b> - read the summary. That's the whole market in a paragraph.</li>
+      <li><b>Big picture</b> - glance at which cards are green or red. Tap one you don't
+      understand yet; learn one card a day.</li>
+      <li><b>Coming up</b> - see if a big event (three stars) is this week.</li>
+      <li><b>News</b> - read the top one or two stories under "Still matters in months".
+      Skip "Today's moves" unless you're curious.</li>
+      <li><b>Stocks</b> - when a company catches your eye, read <i>why</i> it's on the list
+      before anything else.</li>
+    </ul>
+    <p>When you're comfortable, switch to <b>Advanced</b> at the top to see the underlying
+    numbers.</p>`],
+];
+
+function renderLearn() {
+  document.getElementById('lessons').innerHTML = LESSONS.map(([title, mins, body], i) =>
+    `<details class="lesson"${i === 0 && !LS.get('learned', false) ? '' : ''}>
+      <summary><span class="num">${i + 1}</span>${esc(title)}<span class="mins">${mins} min</span></summary>
+      <div class="lesson-body">${body}</div></details>`).join('');
+  document.getElementById('glossary').innerHTML = Object.keys(GLOSSARY)
+    .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}))
+    .map(term => `<div><b>${esc(term)}</b><span>${esc(GLOSSARY[term])}</span></div>`).join('');
+}
+
+// -- mode & load -----------------------------------------------------------
+
+function applyMode() {
+  document.body.className = state.mode === 'advanced' ? 'advanced' : 'beginner';
+  document.querySelectorAll('#mode-seg button').forEach(
+    b => b.setAttribute('aria-pressed', b.dataset.mode === state.mode));
+  pop.style.display = 'none';
+  renderBrief();
+  renderRegime();
+  renderStocks();
+  renderCalendar();
+  renderSnapshot();
+  renderMetrics();
+  if (state.items.length) renderNews();
+}
+
 function applyPrefs() {
   for (const [id, key, cast] of [['window-seg', 'days', Number], ['sort-seg', 'sort', String],
                                  ['group-seg', 'group', String], ['tier-seg', 'tier', Number]]) {
@@ -854,46 +1406,47 @@ function applyPrefs() {
   }
 }
 
-// -- load ------------------------------------------------------------------
-// The two payloads load independently: a missing market.json must not take the
-// news down with it, and vice versa. They are separate files because the news
-// changes hourly and the metrics daily.
+renderLearn();
+applyPrefs();
+applyMode();
 
-fetch('data/market.json', { cache: 'no-cache' })
-  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-  .then(market => {
-    state.market = market;
-    renderBrief(market);
-    renderRegime(market);
-    renderSnapshot(market);
-    renderCalendar(market);
-    renderMetrics();
-  })
-  .catch(err => {
-    document.getElementById('brief-card').innerHTML =
-      `<div class="status error">Could not load data/market.json (${esc(err.message)}).
-       Run: python -m finance.cli data &amp;&amp; python -m finance.cli export --out-dir docs/data</div>`;
-  });
+// Three payloads, loaded independently: one failing must never take the others
+// down with it.
+const load = path => fetch(path, { cache: 'no-cache' })
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
 
-fetch('data/items.json', { cache: 'no-cache' })
-  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-  .then(data => {
-    state.items = data.items || [];
-    state.categories = data.categories || {};
-    state.horizons = data.horizons || {};
-    state.assets = data.assets || {};
-    document.getElementById('generated').textContent =
-      data.generated_at ? 'updated ' + fmtAge(data.generated_at) + ' ago' : '';
-    document.getElementById('news-status').remove();
-    applyPrefs();
-    renderNews();
-  })
-  .catch(err => {
-    const status = document.getElementById('news-status');
-    status.className = 'status error';
-    status.textContent = `Could not load data/items.json (${err.message}). ` +
-      `Run: python -m finance.cli news && python -m finance.cli rank`;
-  });
+load('data/market.json').then(market => {
+  state.market = market;
+  document.getElementById('generated').textContent =
+    market.generated_at ? 'updated ' + fmtAge(market.generated_at) + ' ago' : '';
+  if (market.regime && market.regime.disclaimer)
+    document.getElementById('disclaimer').textContent = market.regime.disclaimer;
+  applyMode();
+}).catch(err => {
+  document.getElementById('brief-card').innerHTML =
+    `<div class="status error">Could not load the market summary (${esc(err.message)}).</div>`;
+});
+
+load('data/stocks.json').then(stocks => {
+  state.stocks = stocks;
+  renderStocks();
+}).catch(() => {
+  document.getElementById('stock-grid').innerHTML =
+    '<div class="status">Stock lists are not available in this update yet.</div>';
+});
+
+load('data/items.json').then(data => {
+  state.items = data.items || [];
+  state.categories = data.categories || {};
+  state.horizons = data.horizons || {};
+  state.assets = data.assets || {};
+  document.getElementById('news-status').remove();
+  renderNews();
+}).catch(err => {
+  const status = document.getElementById('news-status');
+  status.className = 'status error';
+  status.textContent = `Could not load the news (${err.message}).`;
+});
 </script>
 </body>
 </html>

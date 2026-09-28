@@ -6,7 +6,7 @@ it matter to me?**
 Most finance feeds answer a different one — what happened, loudly. This one
 pulls three things that have to be read together and puts them on one page:
 
-- **What is true now.** 60 macro and market series from FRED and Yahoo, each
+- **What is true now.** 60 macro and market series from FRED and Nasdaq, each
   turned into a level, its momentum, and where it sits in its own five-year
   distribution — with a plain-English note on *why it matters* and what a move
   in it means.
@@ -16,6 +16,9 @@ pulls three things that have to be read together and puts them on one page:
   which is the only place a view can be wrong in a useful way.
 - **What is scheduled.** An economic calendar, because what moves a market this
   week was published weeks ago.
+- **Which stocks people are watching.** Three daily lists - trending, popular
+  but falling, and popular with tech people - each stock shown with *why* it is
+  on the list.
 
 Then it ranks the news against all of it, on two separate axes: **market
 impact** (how big a deal is this for anyone) and **relevance** (would *you*,
@@ -24,6 +27,12 @@ plain-English profile you write in [`profile.md`](profile.md).
 
 A GitHub Action runs it every weekday morning before the 08:30 ET releases and
 pushes the result to GitHub Pages.
+
+**The page opens in Beginner mode**, written for someone new to finance: every
+reading is in plain English with its numbers anchored ("prices are rising 3.3% a
+year, against the Fed's goal of 2%"), jargon is tap-to-define, and seven short
+lessons explain everything the page shows. **Advanced** mode, one click away,
+is the expert view with the raw series, z-scores and regime evidence.
 
 > **Not investment advice.** Everything here describes public data and the
 > mechanisms by which it has historically reached asset prices. Nothing on the
@@ -47,16 +56,18 @@ static page committed to `docs/`.
 ## How it works
 
 ```
-data   ->  FRED (54 series) + Yahoo (25 symbols)  ->  SQLite observations
+data   ->  FRED (56 series) + Nasdaq (17 ETFs)    ->  SQLite observations
        ->  federalreserve.gov FOMC calendar (confirmed dates)
        ->  publication rules (everything else, marked estimated)
 news   ->  28 feeds + Reddit                      ->  SQLite items
+stocks ->  Nasdaq screener (all ~7,000 US stocks) + price history
+       ->  Stocktwits, Reddit (ApeWisdom), Hacker News   ->  three lists
 rank   ->  crowd popularity (where any exists)
        ->  categories + horizon (keyword pass)
        ->  market impact (free, always)
        ->  relevance + category + horizon + assets (LLM, new items only)
 brief  ->  regime + top news + calendar           ->  one paragraph
-export ->  docs/data/{items,market}.json          ->  GitHub Pages
+export ->  docs/data/{items,market,stocks}.json   ->  GitHub Pages
 ```
 
 ### Two axes, not one
@@ -147,8 +158,11 @@ something the price has not.
 
 | Source | What it adds | Key needed |
 | --- | --- | --- |
-| **FRED** (54 series) | every macro series: inflation, labour, rates, credit spreads, liquidity, housing, fiscal | no — the graph CSV export is public |
-| **Yahoo Finance** (25 symbols) | today's prices, plus gold, copper, bitcoin and the sector ETFs FRED does not carry | no |
+| **FRED** (56 series) | every macro series: inflation, labour, rates, credit spreads, liquidity, housing, fiscal, plus the S&P 500, Nasdaq 100, VIX and bitcoin | no — the graph CSV export is public |
+| **Nasdaq** | ETF prices for the cross-asset table (and gold, copper, small caps, which FRED lacks); the whole US stock listing in one request; per-stock price history | no |
+| **Stocktwits** | the 30 most-discussed symbols right now, each with a plain summary of *why* | no |
+| **ApeWisdom** | stock mentions across the big investing subreddits, now vs 24h ago | no |
+| **Hacker News** (Algolia) | how often each of ~100 tech companies appears in story titles | no |
 | **federalreserve.gov** | confirmed FOMC dates for two years ahead | no |
 | **6 primary feeds** | the Fed, BEA, SEC, ECB — the thing itself, not a report of it | no |
 | **11 wire/major outlets** | WSJ, FT, Economist, CNBC, MarketWatch, NY Fed and BoE research | no |
@@ -170,9 +184,16 @@ so they cannot drift apart.
   there is no free machine-readable consensus. The page gives percentile,
   z-score and momentum context instead, which is usually enough to know whether
   a number is news.
-- **Yahoo rate-limits bursts.** A blocked run gives up after three consecutive
-  429s rather than grinding for ten minutes; headline market series fall back to
-  FRED (a day stale) and the snapshot keeps whatever history is already cached.
+- **Yahoo was dropped** after it returned 429 on every run from GitHub's
+  runners (the cross-asset table was empty for the project's first week because
+  of it). Nasdaq replaced it. Every price fetcher still gives up after three
+  consecutive refusals rather than grinding, and each source fails soft.
+- **Nasdaq, Stocktwits and ApeWisdom were verified from a laptop, not from a
+  GitHub runner.** If one of them blocks datacenter IPs the way Yahoo did, its
+  section keeps the last good data and the run log says which source failed.
+- **ETF stand-ins.** Gold, copper and small caps have no free daily series, so
+  GLD, CPER and IWM stand in and say so in their labels. Read their changes,
+  not their levels - GLD's price is not the price of an ounce.
 - **No non-US central bank calendar.** ECB and BoJ dates are published but not
   in any form worth scraping, so only their news is covered, not their schedule.
 
@@ -205,6 +226,10 @@ python -m finance.cli --db /tmp/finance.db news
 
 ```bash
 python -m finance.cli --db /tmp/finance.db rank
+```
+
+```bash
+python -m finance.cli --db /tmp/finance.db stocks
 ```
 
 ```bash
@@ -257,7 +282,7 @@ Add under **Settings → Secrets and variables → Actions**:
 
 Optional tuning variables: `RANKER_LIMIT`, `RANKER_BATCH_SIZE` (default 40),
 `RANKER_MIN_INTERVAL` (default 8s), `HISTORY_YEARS` (12), `CALENDAR_MONTHS` (4),
-`EXPORT_DAYS` (10), `PRUNE_DAYS` (45).
+`EXPORT_DAYS` (10), `PRUNE_DAYS` (45), `HN_DAYS` (30).
 
 The workflow runs at 11:00 UTC (7am ET) on weekdays — before the 08:30 releases,
 because the point of the calendar is to be read *before* the things on it
@@ -278,24 +303,59 @@ personalised relevance score and the written brief need a model.
 
 ## The page
 
-`docs/index.html` is one file, no build step, no dependencies:
+`docs/index.html` is one file, no build step, no dependencies. It opens in
+**Beginner** mode; the toggle in the header switches to **Advanced**.
 
-- **Brief** — what state the market is in, what changed, where the reads
-  disagree, and what would change it
-- **Regime** — seven tiles; click any one for its evidence, why it matters and
-  the mechanism
-- **Cross-asset** — what is leading, plus the five ratios (small caps vs S&P,
-  discretionary vs staples, gold vs long bonds…) that say *why*
-- **Calendar** — what is scheduled, with `~` on inferred dates and a note on
-  what to look at when each one lands
-- **Metrics** — every series with momentum, percentile and a sparkline; click a
-  row for why it matters and what a move means
-- **News** — grouped by horizon, with both scores, filter chips, search, read
-  state, and <kbd>j</kbd>/<kbd>k</kbd>/<kbd>o</kbd>/<kbd>space</kbd> navigation
+- **Today** — the whole market in a paragraph. In Beginner mode it is written
+  from the same computed states as the expert version, so the two can never
+  disagree; only the words differ.
+- **Big picture** — the seven regime reads as cards: *helping stocks* /
+  *neutral* / *hurting stocks*, the reading in everyday words with its numbers,
+  and a tap for "what is this" and "why it matters to you".
+- **Stocks people are watching** — three lists, below.
+- **Coming up** — scheduled events in plain words ("Jobs report — the
+  government's monthly count of jobs added"), with `~` on estimated dates.
+- **Markets** — how each slice of the market did, labelled by what it holds
+  ("things people need: food, soap, drinks") rather than by ticker.
+- **News** — ranked for you, grouped by how long it will matter ("Still matters
+  in months" / "Matters this week or two" / "Today's moves — mostly noise by
+  tomorrow"). Beginners see two plain flags, **Big** and **For you**, instead of
+  two numbers.
+- **Learn the basics** — seven short lessons in order (what a stock is, why
+  interest rates move everything, what the Fed does, inflation, index funds vs
+  picking stocks, how not to get fooled by hype, how to use this page) and a
+  glossary.
+- **Numbers** *(Advanced)* — every series with momentum, percentile and a
+  sparkline; the leadership ratios; numeric scores; keyboard navigation
+  (<kbd>j</kbd>/<kbd>k</kbd>/<kbd>o</kbd>/<kbd>space</kbd>).
 
-Dark mode, a usable phone layout, and everything it remembers lives in
-`localStorage` — nothing is uploaded, and every read is guarded so a private
-window still works.
+Every glossary term on the page is **tap-to-define** in Beginner mode (first
+mention per block only, so a paragraph is not a sea of underlines). Dark mode, a
+phone layout, and everything it remembers lives in `localStorage` — nothing is
+uploaded.
+
+### The stock lists
+
+Screens, not recommendations: each is a filter over data, and every stock shows
+the reason it passed.
+
+| List | What gets on it |
+| --- | --- |
+| **Trending** | Stocktwits' 30 most-discussed symbols (US stocks only — ETFs and crypto drop out), each with Stocktwits' summary of *why*; plus any stock whose Reddit mentions at least doubled in a day. |
+| **Popular, but falling** | A stock with a reason to be well known — trending, a Reddit top-30, one of the ~40 largest listed companies, or frequent in Hacker News titles — that is down 10%+ this month, or 15%+ below its 52-week high *and still falling*. A stock recovering from an old peak is not a dip, and is not listed. |
+| **Popular with tech people** | Companies from [`finance/tech_universe.json`](finance/tech_universe.json) in at least three Hacker News titles this month that are not household consumer brands, not worth $150 billion or more, and not a Reddit favourite. Mostly companies that sell to developers — which is why most people have not heard of them. |
+
+Each list carries a plain "read this first" note (trending means the news is
+already in the price; a dip is not a discount; engineers love products, not
+valuations), and every row gets its most market-relevant recent headline.
+
+Three data-quality rules do real work here. Hacker News matching is exact and
+case-sensitive — Algolia's default typo tolerance matched "Datadog" to
+"Datalog" and "Oklo" to "Oslo". Reddit tickers that are also forum vocabulary
+are ignored: `IP` (intellectual property), `DTE` (days to expiry), `ALL`,
+`TP`, and `BYD`, which on Reddit is the Chinese carmaker and on a US exchange is
+Boyd Gaming. And the tech universe is a *universe*, not a list of picks — which
+of its ~100 companies appear, and in what order, is decided daily by the data.
 
 ---
 
@@ -305,18 +365,21 @@ window still works.
 python -m pytest tests/ -q
 ```
 
-150 tests, no network. Parser tests run against captured real responses in
+217 tests, no network. Parser tests run against captured real responses in
 `tests/fixtures/` so they assert against the shapes these services actually
 return. The LLM tests use a stub provider and cover batching, a failed batch, a
 per-minute 429 retry, a daily quota stopping the run, and the caching that keeps
-a second run free. The pipeline test runs rank → brief → export end to end
-against a temporary database.
+a second run free. The stock-list tests pin the rules above - a recovering
+stock is not a dip, one viral post does not outrank a month of discussion,
+Alphabet is not listed twice. The plain-language tests check that expert
+vocabulary never leaks into Beginner text. The pipeline test runs rank → brief →
+export end to end against a temporary database.
 
 ## Layout
 
 ```
 finance/
-  cli.py             data / news / rank / brief / export / list / dash / calendar / prune
+  cli.py             data / news / stocks / rank / brief / export / list / dash / calendar / prune
   indicators.py      THE knowledge file: 60 series, and why each one matters
   metrics.py         level -> context: momentum, z-score, percentile, sparkline
   regime.py          the seven reads and the mechanism behind each
@@ -325,11 +388,14 @@ finance/
   impact.py          how much this moves markets
   rank.py            heuristic + LLM relevance, provider plumbing
   brief.py           the daily brief, computed or written
+  plain.py           the Beginner layer: plain labels, anchored numbers, event text
+  stocks.py          the three stock lists, as pure functions of fetched data
+  tech_universe.json the ~100 tech companies the HN signal is counted over
   popularity.py      per-source crowd normalization (a minor input here)
   normalize.py       URL canonicalization and story identity
   db.py              SQLite: items, observations, events, state
   feeds.json         the news sources - add outlets here
-  fetchers/          fred, yahoo, rss, reddit, fomc
+  fetchers/          fred, nasdaq, social (Stocktwits/ApeWisdom/HN), rss, reddit, fomc
 docs/                the published site (index.html + data/*.json)
 profile.md           your situation and open questions. This file is the prompt.
 PLAYBOOK.md          how to read the market, and what each number means

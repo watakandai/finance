@@ -206,6 +206,14 @@ jobs:
           fi
           python -m finance.cli --db /tmp/finance.db rank --llm "${args[@]}"
 
+      # The three stock lists (trending / popular but falling / popular with
+      # tech people). After ranking on purpose: each stock is explained with its
+      # most market-relevant recent headline, and "most relevant" is the impact
+      # score the rank step just computed. Every source here fails soft, so a
+      # blocked API degrades a list rather than failing the run.
+      - name: Build the stock lists
+        run: python -m finance.cli --db /tmp/finance.db stocks --hn-days ${{ vars.HN_DAYS || 30 }}
+
       # One request, tried down the same fallback chain. Falls back to the
       # computed brief if every provider fails, so this step cannot fail the run.
       - name: Write the daily brief
@@ -238,4 +246,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Daily market refresh'
-          file_pattern: docs/data/items.json docs/data/market.json
+          file_pattern: docs/data/items.json docs/data/market.json docs/data/stocks.json

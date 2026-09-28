@@ -15,7 +15,6 @@ from finance.calendar_rules import FRI, MON, THU, TUE, WED, easter, federal_holi
 from finance.fetchers.fomc import parse as parse_fomc, _decision_date
 from finance.fetchers.fred import parse_csv
 from finance.fetchers.rss import RSSFetcher
-from finance.fetchers.yahoo import parse_chart
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -51,23 +50,6 @@ def test_fred_csv_survives_junk_rows_and_an_empty_body():
 def test_a_monthly_fred_series_is_dated_on_the_first_of_its_month():
     rows = parse_csv(fixture("fred_unrate.csv"))
     assert rows and all(on.day == 1 for on, _ in rows)
-
-
-# --------------------------------------------------------------------- Yahoo
-
-def test_yahoo_chart_skips_days_the_symbol_did_not_trade():
-    data = json.loads(fixture("yahoo_gspc.json"))
-    out = parse_chart(data, "spx")
-    closes = [o.value for o in out]
-    assert len(out) == 4          # five timestamps, one null close
-    assert None not in closes
-    assert all(o.series_id == "spx" and o.source == "yahoo" for o in out)
-    assert out == sorted(out, key=lambda o: o.on)
-
-
-def test_yahoo_raises_with_the_providers_own_message_when_there_is_no_result():
-    with pytest.raises(ValueError, match="No data found"):
-        parse_chart({"chart": {"result": [], "error": {"description": "No data found"}}}, "x")
 
 
 # ----------------------------------------------------------------------- RSS
@@ -180,50 +162,3 @@ def test_the_auction_pair_never_inverts_even_when_a_month_starts_on_a_thursday()
 def test_nothing_is_generated_before_the_start_date():
     events = generate(date(2026, 10, 20), months=1)
     assert all(e.on >= date(2026, 10, 20) for e in events)
-
-
-# ------------------------------------------------- the quote circuit breaker
-
-def test_a_wholesale_rate_limit_stops_the_run_instead_of_grinding(monkeypatch):
-    """A blocked quote source must not turn a failed fetch into a ten-minute one.
-
-    Each symbol exhausts three retries before giving up, so without the breaker
-    twenty-five blocked symbols cost ten minutes of sleeping - in a daily
-    workflow that is the difference between a degraded run and a timed-out job.
-    """
-    import urllib.error
-
-    from finance.fetchers import yahoo
-
-    attempts = []
-
-    def always_429(url, timeout, headers):
-        attempts.append(url)
-        raise urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
-
-    monkeypatch.setattr(yahoo, "get_json", always_429)
-    fetcher = yahoo.YahooFetcher({f"SYM{i}": f"s{i}" for i in range(10)},
-                                 pause=0, sleep=lambda s: None)
-    assert fetcher.fetch() == []
-    assert fetcher.rate_limited
-    # Three symbols x four attempts each, then the rest are skipped untried.
-    assert len(attempts) == yahoo.GIVE_UP_AFTER * (len(yahoo.RETRY_WAITS) + 1)
-    assert sum("skipped" in why for _, why in fetcher.failures) == 7
-
-
-def test_a_single_bad_symbol_does_not_trip_the_breaker(monkeypatch):
-    import urllib.error
-
-    from finance.fetchers import yahoo
-
-    def one_bad(url, timeout, headers):
-        if "BAD" in url:
-            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
-        return json.loads(fixture("yahoo_gspc.json"))
-
-    monkeypatch.setattr(yahoo, "get_json", one_bad)
-    fetcher = yahoo.YahooFetcher({"BAD": "b", "GOOD": "g"}, pause=0,
-                                 sleep=lambda s: None)
-    out = fetcher.fetch()
-    assert out and not fetcher.rate_limited
-    assert len(fetcher.failures) == 1

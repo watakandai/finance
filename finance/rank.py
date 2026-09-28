@@ -260,9 +260,10 @@ HORIZON - exactly one id from: {horizons}
 price. A rate decision is `months` even though it moves the tape instantly.
 ASSETS - zero to three ids from: {assets}
   Only what the item actually bears on.
-REASON - at most 14 words. Say what it means or what it changes, in plain \
-language. Describe the mechanism or the consequence; never tell them to buy, \
-sell, hold or allocate anything.
+REASON - at most 16 words. Say what it means or what it changes, in words a \
+finance beginner understands - no jargon, or explain the term. Describe the \
+mechanism or the consequence; never tell them to buy, sell, hold or allocate \
+anything.
 
 Return ONLY a JSON array, no prose, no code fence:
 [{{"i": <item number>, "score": <integer 0-100>, "category": "<id>", \

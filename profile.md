@@ -20,39 +20,35 @@ this file is designed for.
 ## Who I am, financially
 
 <!--
-EDIT THIS SECTION FIRST. Everything below it is a reasonable default; this part
-is a guess, and a wrong guess here is the main reason the top of the list would
-be wrong for you. Replace anything that does not describe you.
+Kandai confirmed (2026-09-27): a complete beginner to finance. The rest of this
+section is still a guess - correct anything that does not describe you.
 -->
 
-- Horizon: long - a decade or more. I am trying to grow the portfolio, not
-  trade it.
-- What I manage: my own accounts. Nobody is doing this for me, so I need to
-  understand the reasoning rather than follow a recommendation.
-- Roughly how it is allocated: mostly equities, weighted towards US technology,
-  with some cash. Not much in bonds today, which is itself one of the open
-  questions below.
+- **I am a complete beginner.** I don't yet know what most finance terms mean,
+  and I stop reading when a page assumes I do. Explain things plainly.
+- Horizon: long - a decade or more. I want to grow my savings, not trade.
+- What I manage: my own accounts, so I need to understand the reasoning rather
+  than follow someone's recommendation.
+- Roughly how it is allocated: mostly stocks, weighted towards US technology,
+  with some cash.
 - Currency I actually spend: USD.
-- How active I am: I check once a day and change the allocation rarely. I want
-  to understand what is happening far more than I want something to do about it.
+- How active I am: I check occasionally and change things rarely.
 
 ## What I am trying to decide
 
 <!-- The most valuable section. These drive the top of the ranked list, so keep
-them current - delete a question once it stops being open, and add the one that
-replaced it. -->
+them current. -->
 
-- How exposed I am to the AI capital-spending cycle, and what would tell me it
-  is turning before the earnings do.
-- Whether high real yields make bonds or cash worth holding as a genuine
-  alternative to equities, rather than as dead money.
-- Which policy decisions - rates, tariffs, tax, Treasury issuance - would most
-  change the value of what I already hold, and what the transmission actually
-  is.
-- What a US slowdown would do to a technology-heavy portfolio, and which
-  indicators would warn me early rather than confirm it late.
-- Whether I am too concentrated in one country and one currency, and what would
-  make international exposure worth the tracking error.
+- What actually moves the stock market, and which news I should pay attention
+  to versus ignore.
+- Which policy decisions - interest rates, tariffs, taxes - would most change
+  the value of what I hold, and why.
+- How exposed a tech-heavy portfolio is to the AI spending boom, and what would
+  warn me early if it turned.
+- Which companies are getting attention, why, and how to tell a real story from
+  hype.
+- What a US slowdown would do to stocks like mine, and which signs would come
+  first.
 
 ## What I want to see
 
@@ -62,9 +58,13 @@ replaced it. -->
   that breaks the current consensus rather than confirming it.
 - **Credit and liquidity** - spreads, funding conditions, bank lending. The
   early-warning layer.
-- **Mechanism and explanation** - a piece that explains *why* something
-  transmits to asset prices beats the tenth report that it moved. Rank
-  explainers, primers and historical studies high even when nobody shared them.
+- **Explanations** - a piece that explains *why* something matters, in plain
+  words, beats the tenth report that it happened. Rank good explainers, primers
+  and "what history says" pieces high - I am still learning how all of this
+  fits together.
+- **Why companies are moving** - news that explains why a well-known or
+  much-discussed company rose or fell: results, a product, a lost customer,
+  regulation. Especially tech companies.
 - **Structural change** - anything that will still matter in six months.
 
 ## What to push down
@@ -73,7 +73,7 @@ replaced it. -->
   prediction with no reasoning attached.
 - Daily market recaps and "stocks closed lower" wraps.
 - Personality and drama coverage of executives, central bankers or politicians.
-- Single-stock news about companies I do not hold and would not buy.
+- Single-stock stories that only report a price move with no reason given.
 - Crypto, unless it is about liquidity, regulation or the banking system.
 - Anything that needs me to trade this week to be useful.
 
@@ -83,6 +83,6 @@ replaced it. -->
 - I would rather understand the mechanism than be told a conclusion.
 - Popularity is a tiebreaker, not the goal. Something already on every front
   page is probably already in the price.
-- Assume I know the basics: what CPI is, what the Fed does, what a yield curve
-  is. Do not rank an introductory explainer of those highly - rank the one that
-  tells me something I could not have worked out.
+- I am a beginner. Prefer pieces that explain over pieces that assume. A clear
+  explainer of something basic is worth more to me than an expert piece I
+  cannot follow - but not one that is only a definition with nothing new in it.

@@ -15,7 +15,7 @@ from . import rank as ranking
 from . import regime as regime_mod
 from .calendar_rules import generate as generate_calendar
 from .db import (
-    count_events, count_items, count_observations, get_state, init_db,
+    count_events, count_items, count_observations, get_state, init_db, last_dates,
     query_events, query_items, row_to_dict, series_values, set_categories,
     set_heuristic_scores, set_impact, set_llm_results, set_popularity,
     set_state, prune, unscored_items, upsert_events, upsert_items,
@@ -25,15 +25,18 @@ from .fetchers.fomc import FomcFetcher
 from .fetchers.fred import FredFetcher
 from .fetchers.reddit import RedditFetcher
 from .fetchers.rss import RSSFetcher
-from .fetchers.yahoo import YahooFetcher
+from .fetchers import nasdaq as nasdaq_api
+from .fetchers import social
+from .fetchers.nasdaq import NasdaqHistoryFetcher
 from .impact import impact_scores
+from . import stocks as stock_lists
 
 DEFAULT_DB = Path.home() / ".finance" / "finance.db"
 FEEDS_FILE = Path(__file__).parent / "feeds.json"
 
 # Sources that can go quiet without erroring - a credentialed or rate-limited
 # path where zero results means "something changed", not "slow news day".
-FRAGILE_SOURCES = {"reddit", "yahoo"}
+FRAGILE_SOURCES = {"reddit", "nasdaq"}
 
 # Market symbols that back no indicator. The `mkt:` prefix keeps them in the
 # observations table without pretending they are macro series.
@@ -74,10 +77,27 @@ def fred_series_map() -> dict:
 
 
 def quote_symbol_map() -> dict:
-    """{Yahoo symbol: local series id}, indicators plus snapshot-only symbols."""
-    out = {series.quote: series.id for series in indicators.SERIES if series.quote}
-    out.update(SNAPSHOT_SERIES)
-    return out
+    """{ETF symbol: ([local series ids], "etf")} - indicators plus snapshot rows.
+
+    A symbol that is both an indicator and a snapshot row (IWM, GLD) maps to
+    both ids, so it is fetched once.
+    """
+    out = {}
+    for series in indicators.SERIES:
+        if series.quote:
+            out.setdefault(series.quote, []).append(series.id)
+    for symbol, series_id in SNAPSHOT_SERIES.items():
+        out.setdefault(symbol, []).append(series_id)
+    return {symbol: (ids, "etf") for symbol, ids in out.items()}
+
+
+UNIVERSE_FILE = Path(__file__).parent / "tech_universe.json"
+
+
+def load_universe() -> dict:
+    """{ticker: company} from tech_universe.json, in file order."""
+    companies = json.loads(UNIVERSE_FILE.read_text()).get("companies", [])
+    return {c["ticker"]: c for c in companies}
 
 
 def main() -> None:
@@ -97,6 +117,13 @@ def main() -> None:
                       help="how far ahead to generate the calendar")
     data.add_argument("--skip", default="",
                       help="comma-separated: fred, quotes, calendar")
+
+    stocks_parser = sub.add_parser(
+        "stocks", help="build the trending / dipping / tech-favourite stock lists")
+    stocks_parser.add_argument("--hn-days", type=int, default=30,
+                               help="how far back to count Hacker News mentions")
+    stocks_parser.add_argument("--skip", default="",
+                               help="comma-separated: stocktwits, reddit, hn, history")
 
     rank_parser = sub.add_parser(
         "rank", help="score news (impact and relevance; LLM optionally)")
@@ -164,7 +191,8 @@ def main() -> None:
     Path(args.db).parent.mkdir(parents=True, exist_ok=True)
     init_db(args.db)
 
-    {"news": _cmd_news, "data": _cmd_data, "rank": _cmd_rank, "brief": _cmd_brief,
+    {"news": _cmd_news, "data": _cmd_data, "stocks": _cmd_stocks,
+     "rank": _cmd_rank, "brief": _cmd_brief,
      "export": _cmd_export, "list": _cmd_list, "dash": _cmd_dash,
      "calendar": _cmd_calendar, "prune": _cmd_prune}[args.cmd](args)
 
@@ -207,22 +235,23 @@ def _cmd_data(args) -> None:
             print(f"  fred {series_id}: FAILED ({why})", file=sys.stderr)
 
     if "quotes" not in skip:
-        yahoo = YahooFetcher(quote_symbol_map())
-        quotes = yahoo.fetch()
+        mapping = quote_symbol_map()
+        since = {sid: d for sid, d in last_dates(args.db).items()
+                 if any(sid in ids for ids, _ in mapping.values())}
+        quoter = NasdaqHistoryFetcher(mapping, since=since)
+        quotes = quoter.fetch()
         upsert_observations(args.db, quotes)
         print(f"quotes: {len(quotes)} observations across "
-              f"{len(yahoo.symbol_map) - len(yahoo.failures)} symbols")
-        for symbol, why in yahoo.failures:
+              f"{len(quoter.symbol_map) - len(quoter.failures)} symbols")
+        for symbol, why in quoter.failures:
             print(f"  quote {symbol}: FAILED ({why})", file=sys.stderr)
-        if getattr(yahoo, "rate_limited", False):
-            print("  warning: the quote source rate-limited this run and the "
-                  "rest were skipped. Headline market series fall back to FRED "
-                  "(a day stale); the cross-asset snapshot keeps whatever "
-                  "history is already stored.", file=sys.stderr)
+        if quoter.rate_limited:
+            print("  warning: the quote source refused this run and the rest "
+                  "were skipped. The cross-asset table keeps whatever history "
+                  "is already stored.", file=sys.stderr)
         elif not quotes:
-            print("  warning: every quote failed. Market series fall back to "
-                  "FRED (a day stale) and the cross-asset snapshot will be "
-                  "missing.", file=sys.stderr)
+            print("  warning: every quote failed, so the cross-asset table will "
+                  "be missing or stale.", file=sys.stderr)
 
     if "calendar" not in skip:
         # Rules first, then the scrape: `upsert_events` refuses to let an
@@ -243,6 +272,86 @@ def _cmd_data(args) -> None:
 
     print(f"{count_observations(args.db)} observations, "
           f"{count_events(args.db)} events in the database")
+
+
+# ------------------------------------------------------------------ stocks
+
+def _cmd_stocks(args) -> None:
+    """Fetch attention and prices, then build the three stock lists.
+
+    Every source fails soft and independently. What this run could not fetch
+    falls back to what the last run stored, because a list built from
+    yesterday's Stocktwits and today's prices is still useful, while an empty
+    section teaches a beginner that the page is broken.
+    """
+    skip = {s.strip() for s in args.skip.split(",") if s.strip()}
+    previous = get_state(args.db, "stocks_inputs") or {}
+
+    def attempt(name, fn, fallback):
+        if name in skip:
+            print(f"{name}: skipped - reusing the last run's data")
+            return fallback
+        try:
+            return fn()
+        except Exception as exc:
+            print(f"{name}: FAILED ({type(exc).__name__}: {exc}) - reusing the "
+                  "last run's data", file=sys.stderr)
+            return fallback
+
+    rows = attempt("screener", nasdaq_api.screener, None)
+    if rows is None:
+        screener = previous.get("screener") or {}
+    else:
+        screener = {r["symbol"]: r for r in rows}
+        print(f"screener: {len(screener)} US-listed stocks")
+
+    stocktwits = attempt("stocktwits", social.stocktwits_trending,
+                         previous.get("stocktwits") or [])
+    print(f"stocktwits: {len(stocktwits)} trending symbols")
+    reddit = attempt("reddit", social.apewisdom, previous.get("reddit") or [])
+    print(f"reddit (ApeWisdom): {len(reddit)} ranked tickers")
+
+    universe = load_universe()
+    hn = attempt(
+        "hn",
+        lambda: social.hn_mentions(
+            [{"ticker": t, "name": c["query"], **c} for t, c in universe.items()
+             if t in screener],
+            days=args.hn_days),
+        previous.get("hn") or {})
+    print(f"hacker news: {sum(1 for v in hn.values() if v.get('stories'))} of "
+          f"{len(universe)} companies mentioned in the last {args.hn_days} days")
+
+    wanted = stock_lists.candidates(screener, stocktwits, reddit, hn)
+    if "history" not in skip and wanted:
+        mapping = {sym: (f"stk:{sym}", "stocks") for sym in wanted}
+        fetcher = NasdaqHistoryFetcher(mapping, since=last_dates(args.db, "stk:"))
+        observations = fetcher.fetch()
+        upsert_observations(args.db, observations)
+        failed = len(fetcher.failures)
+        print(f"history: {len(observations)} closes for "
+              f"{len(mapping) - failed}/{len(mapping)} stocks")
+        for symbol, why in fetcher.failures[:8]:
+            print(f"  history {symbol}: FAILED ({why})", file=sys.stderr)
+    histories = {sym: series_values(args.db, f"stk:{sym}") for sym in wanted}
+
+    # Only what the lists can use is kept: the full screener is ~7,000 rows and
+    # would be carried in the cached database forever for nothing.
+    keep = set(wanted) | set(universe)
+    set_state(args.db, "stocks_inputs", {
+        "screener": {k: v for k, v in screener.items() if k in keep},
+        "stocktwits": stocktwits,
+        "reddit": reddit,
+        "hn": hn,
+        "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    })
+    since = (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
+    recent = [row_to_dict(r) for r in query_items(args.db, order_by="impact", since=since)]
+    built = stock_lists.build(screener, histories, stocktwits, reddit, hn, universe,
+                              items=recent)
+    set_state(args.db, "stocks", built)
+    for key, rows in built["lists"].items():
+        print(f"list {key}: {', '.join(r['symbol'] for r in rows) or '(empty)'}")
 
 
 # -------------------------------------------------------------------- rank
@@ -591,6 +700,11 @@ def _cmd_export(args) -> None:
     recent = query_events(
         args.db, start=(today - timedelta(days=7)).isoformat(),
         end=(today - timedelta(days=1)).isoformat(), max_importance=2)
+    # Each event carries its plain-English title and description alongside the
+    # expert one; the page picks by mode.
+    from .plain import event_plain
+    for event in events + recent:
+        event["plain"] = event_plain(event["event_id"])
     market_payload = {
         "generated_at": generated,
         "families": indicators.FAMILIES,
@@ -603,6 +717,19 @@ def _cmd_export(args) -> None:
         "brief": get_state(args.db, "brief") or {},
     }
     _write_json(out_dir / "market.json", market_payload, "metrics")
+
+    # --- stocks: separate file, so the lists can be rebuilt and shipped
+    # without touching the rest.
+    built = get_state(args.db, "stocks") or {}
+    inputs = get_state(args.db, "stocks_inputs") or {}
+    stocks_payload = {
+        "generated_at": generated,
+        "data_as_of": inputs.get("fetched_at", ""),
+        "notes": built.get("notes") or stock_lists.LIST_NOTES,
+        "lists": built.get("lists") or {"trending": [], "dipping": [], "tech": []},
+    }
+    (out_dir / "stocks.json").write_text(
+        json.dumps(stocks_payload, separators=(",", ":"), default=str) + "\n")
     print(f"exported {len(market_payload['metrics'])} metrics, "
           f"{len(reading['reads'])} regime reads, {len(events)} upcoming events "
           f"to {out_dir}")

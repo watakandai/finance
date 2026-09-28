@@ -76,6 +76,7 @@ def heuristic_brief(regime: dict, items: list, events: list,
 
     lede = regime.get("summary", "")
     tension = regime.get("tension", "")
+    plain = regime.get("plain") or {}
     return {
         "by": "heuristic",
         "generated_at": now.isoformat(timespec="seconds"),
@@ -84,8 +85,28 @@ def heuristic_brief(regime: dict, items: list, events: list,
         "tension": tension,
         "points": points[:MAX_POINTS],
         "watch": watch_list(events),
+        # The beginner page reads these. Computed from the same states, so the
+        # two versions can never disagree - only the words differ.
+        "plain_lede": plain.get("lede", ""),
+        "plain_tension": plain.get("tension", ""),
+        "plain_points": plain_points(regime) + [
+            p for p in points if p["kind"] == "news"][:2],
         "disclaimer": DISCLAIMER,
     }
+
+
+def plain_points(regime: dict, limit: int = 4) -> list:
+    """The cards that are actually saying something, in plain words."""
+    out = []
+    for read in sorted(regime.get("reads") or [], key=lambda r: -abs(r["score"])):
+        plain = read.get("plain") or {}
+        if read["score"] == 0 or not plain.get("now"):
+            continue
+        out.append({"kind": "regime", "label": plain.get("label", read["label"]),
+                    "text": plain["now"]})
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _first_sentence(text: str) -> str:
@@ -142,9 +163,10 @@ def watch_list(events: list, limit: int = 5) -> list:
     return out
 
 
-PROMPT = """You are writing the morning macro note for one investor, whose \
+PROMPT = """You are writing the morning market note for one investor, whose \
 profile is below. It is read once, before the market opens, by somebody \
-managing their own long-term money.
+managing their own long-term money who is NEW TO FINANCE - write so that a \
+smart person with no finance background understands every sentence.
 
 INVESTOR PROFILE
 {profile}
@@ -180,8 +202,11 @@ answer. Explain transmission; name what would change your read.
 - Never recommend buying, selling, holding, allocating or timing anything, and \
 never describe anything as cheap, expensive, a good entry or an opportunity. \
 Describe consequences and let the reader decide.
-- Plain language. No hedging filler, no "it is important to note", no bullet \
-points inside a text field."""
+- Plain language, for a beginner. Avoid jargon; when a term is unavoidable \
+(inflation, the Fed, bond yield), say what it means in the same sentence the \
+first time. Give every number a comparison ("3.3% a year, against the Fed's 2% \
+goal"). No hedging filler, no "it is important to note", no bullet points \
+inside a text field."""
 
 
 def llm_brief(profile: str, regime: dict, summaries: dict, items: list,
@@ -216,6 +241,11 @@ def llm_brief(profile: str, regime: dict, summaries: dict, items: list,
         "points": [{"kind": "llm", **p} for p in parsed["points"]][:MAX_POINTS],
         "watch": watch_list(events),
         "watch_note": parsed.get("watch_note", ""),
+        # The model was asked to write for a beginner, so its text IS the
+        # plain version.
+        "plain_lede": parsed["lede"],
+        "plain_tension": parsed.get("tension") or (regime.get("plain") or {}).get("tension", ""),
+        "plain_points": [{"kind": "llm", **p} for p in parsed["points"]][:MAX_POINTS],
         "disclaimer": DISCLAIMER,
     }
 
