@@ -160,6 +160,7 @@ something the price has not.
 | --- | --- | --- |
 | **FRED** (56 series) | every macro series: inflation, labour, rates, credit spreads, liquidity, housing, fiscal, plus the S&P 500, Nasdaq 100, VIX and bitcoin | no — the graph CSV export is public |
 | **Nasdaq** | ETF prices for the cross-asset table (and gold, copper, small caps, which FRED lacks); the whole US stock listing in one request; per-stock price history | no |
+| **TradingView** (unofficial) | fundamentals for ~3,900 US stocks in one request (earnings, sales, margins, cash flow, debt, ROIC, beta, analysts' targets, earnings dates) and per-company headlines, used to explain falls and value each stock | no |
 | **Stocktwits** | the 30 most-discussed symbols right now, each with a plain summary of *why* | no |
 | **ApeWisdom** | stock mentions across the big investing subreddits, now vs 24h ago | no |
 | **Hacker News** (Algolia) | how often each of ~100 tech companies appears in story titles | no |
@@ -191,6 +192,10 @@ so they cannot drift apart.
 - **Nasdaq, Stocktwits and ApeWisdom were verified from a laptop, not from a
   GitHub runner.** If one of them blocks datacenter IPs the way Yahoo did, its
   section keeps the last good data and the run log says which source failed.
+- **TradingView's endpoints are unofficial** - the ones tradingview.com's own
+  pages call. Volume is one market scan and a few dozen headline requests a
+  day, and both fail soft: without them the lists still build, just without
+  "why it fell" and value cards (last run's headlines stand in where they can).
 - **ETF stand-ins.** Gold, copper and small caps have no free daily series, so
   GLD, CPER and IWM stand in and say so in their labels. Read their changes,
   not their levels - GLD's price is not the price of an ounce.
@@ -234,6 +239,10 @@ python -m finance.cli --db /tmp/finance.db stocks
 
 ```bash
 python -m finance.cli --db /tmp/finance.db brief
+```
+
+```bash
+python -m finance.cli --db /tmp/finance.db scenarios
 ```
 
 ```bash
@@ -371,6 +380,86 @@ are ignored: `IP` (intellectual property), `DTE` (days to expiry), `ALL`,
 Boyd Gaming. And the tech universe is a *universe*, not a list of picks — which
 of its ~100 companies appear, and in what order, is decided daily by the data.
 
+### Why it fell
+
+Every stock that fell 8%+ this month, or had a 7%+ day, gets an explanation
+built from evidence rather than written from a guess
+([`finance/drops.py`](finance/drops.py)):
+
+1. **Whose story is it?** The month's move is split into what the whole market
+   did (cap-weighted over the 500 largest stocks), what its industry did on
+   top (the median of its TradingView industry), and what is left - the part
+   only the company explains. A software stock down 20% while software fell
+   17% is a software story.
+2. **When?** The worst day in the window. If it carried most of the fall, that
+   day had a cause, and an earnings report in the three days before it is
+   the strongest evidence of what it was.
+3. **What was said?** TradingView's headlines for the symbol, sorted into a
+   closed set of catalysts - trial results, earnings, a new forecast,
+   analysts, legal trouble, new shares, leadership, takeovers, spin-offs,
+   competition, the economy - each with one sentence on why that kind of news
+   moves a price. Headlines must name the company to count as a company cause
+   (market round-ups are filed under every symbol they touch), law-firm
+   "investor alerts" are dropped (they follow falls, they don't cause them),
+   and stock-tip clickbait is never shown.
+
+Each explanation says how sure it is - *clear*, *likely* or *unclear* - and
+"unclear" is a real answer. With an LLM configured, one sentence on **who else
+the cause reaches** (competitors, suppliers, customers) is added.
+
+### Value & quality, and the comparison table
+
+Every stock card has a **Value & quality** panel built from TradingView's
+fundamentals ([`finance/valuation.py`](finance/valuation.py)), in the order the
+ideas build on each other: what the whole company costs (market cap, EV), what
+it earns (revenue, net income, free cash flow, EPS), price against earnings
+(P/E, earnings yield, P/S, P/FCF, FCF yield, EV/EBITDA, PEG), quality (gross,
+operating and net margin, ROE, ROIC), growth, fragility (debt/equity, current
+ratio, beta) and expectations (forward P/E, analysts' targets). Each number has
+a plain reading and its industry's typical value.
+
+At the top are **three first checks** - revenue growth, operating margin, ROIC
+against the cost of capital - and a **reverse DCF**: the yearly free-cash-flow
+growth for ten years that today's price implies, with the cost of capital
+estimated from the 10-year Treasury yield and the stock's beta (all inputs
+shown). A small DCF calculator lets you change growth and the discount rate and
+watch the value per share move - the sensitivity is the lesson.
+
+The **Compare** tab is the same numbers as a table, for a fixed reference set
+(Nvidia, AMD, Meta, Alphabet, Micron, McDonald's, Starbucks, Cloudflare,
+Tesla) plus your watchlist. The readings describe what a number means - "the
+price rests on growth expected later" - and never call anything cheap or
+expensive; a test enforces it.
+
+### What could happen next
+
+[`finance/scenarios.py`](finance/scenarios.py) lays out the future as
+scenarios rather than a forecast:
+
+- **Four scenarios** on the growth-versus-inflation map macro investors use -
+  soft landing, running hot, stagflation, downturn - each with its chain of
+  cause and effect, who tends to gain and lose, a historical precedent, and
+  five **signposts**: thresholds on series the page already tracks. Which way
+  the data leans is the count of signposts met, recomputed daily and kept as a
+  trend line.
+- **Ten knock-on chains** (oil shock, rates high for longer, rate cuts, sticky
+  inflation, weakening jobs, tariffs, the AI capex boom, a strong dollar,
+  credit stress, deficits), each with first, second and long-run effects, the
+  industries reached and how, and what would break the chain. A chain is
+  switched on by today's data (oil up 15%+ in three months) or by several
+  recent headlines on its subject, and shows why.
+- **A prediction log.** Every switched-on chain leaves a falsifiable claim on a
+  tracked series ("producer prices higher in three months") with the reading
+  on the day it was made. When it comes due - and the series has printed since
+  - it is scored. The page shows the running record.
+
+With an LLM configured, one call a day adds what the computed layer cannot:
+how each scenario would unfold *from today's news*, what would tip it, and
+second-order chains for the three stories with the longest reach - each ending
+in a checkable prediction that joins the log. The model's output is validated:
+unknown scenario ids and untracked metrics are dropped, and a chain that slips
+into buy/sell language is discarded whole.
+
 ### Your watchlist
 
 The **My watchlist** tab follows any ticker you choose - a company (NET), a
@@ -403,14 +492,18 @@ python -m finance.cli watch add NET VOO
 python -m pytest tests/ -q
 ```
 
-238 tests, no network. Parser tests run against captured real responses in
+285 tests, no network. Parser tests run against captured real responses in
 `tests/fixtures/` so they assert against the shapes these services actually
 return. The LLM tests use a stub provider and cover batching, a failed batch, a
 per-minute 429 retry, a daily quota stopping the run, and the caching that keeps
 a second run free. The stock-list tests pin the rules above - a recovering
 stock is not a dip, one viral post does not outrank a month of discussion,
 Alphabet is not listed twice, "Paul Graham" is not a company, a fund on the
-watchlist gets no invented market cap. The plain-language tests check that expert
+watchlist gets no invented market cap. The newer tests pin the "why it fell"
+rules found on live data ("Deutsche Bank" is not a ban, "Time to buy?" is not a
+takeover, a law-firm alert is not news), the DCF maths, that value readings
+never say cheap or expensive, that a prediction is only scored on newer data,
+and that model output naming an unknown metric or giving advice is dropped. The plain-language tests check that expert
 vocabulary never leaks into Beginner text. The pipeline test runs rank → brief →
 export end to end against a temporary database.
 
@@ -418,7 +511,7 @@ export end to end against a temporary database.
 
 ```
 finance/
-  cli.py             data / news / stocks / watch / rank / brief / export / list / dash / calendar / prune
+  cli.py             data / news / stocks / watch / rank / brief / scenarios / export / list / dash / calendar / prune
   indicators.py      THE knowledge file: 60 series, and why each one matters
   metrics.py         level -> context: momentum, z-score, percentile, sparkline
   regime.py          the seven reads and the mechanism behind each
@@ -428,14 +521,18 @@ finance/
   rank.py            heuristic + LLM relevance, provider plumbing
   brief.py           the daily brief, computed or written
   plain.py           the Beginner layer: plain labels, anchored numbers, event text
-  stocks.py          the three stock lists, as pure functions of fetched data
+  stocks.py          the stock lists and comparison table, as pure functions of fetched data
+  drops.py           why a stock fell: market / industry / company, the bad day, the catalyst
+  valuation.py       the value card: multiples, quality, cost of capital, reverse DCF
+  scenarios.py       four scenarios, ten knock-on chains, the prediction log
+  analysis.py        the one model call that reasons forward from today, validated
   tech_universe.json the ~100 hand-picked tech companies (discovery adds more)
   watchlist.py       validated edits to watchlist.json
   popularity.py      per-source crowd normalization (a minor input here)
   normalize.py       URL canonicalization and story identity
   db.py              SQLite: items, observations, events, state
   feeds.json         the news sources - add outlets here
-  fetchers/          fred, nasdaq, social (Stocktwits/ApeWisdom/HN), rss, reddit, fomc
+  fetchers/          fred, nasdaq, tradingview, social (Stocktwits/ApeWisdom/HN), rss, reddit, fomc
 docs/                the published site (index.html + data/*.json)
 profile.md           your situation and open questions. This file is the prompt.
 watchlist.json       the tickers you follow

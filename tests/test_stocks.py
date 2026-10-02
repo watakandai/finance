@@ -184,7 +184,9 @@ def test_a_row_with_no_explanation_borrows_its_headline():
 
 def test_every_list_ships_with_a_plain_note_on_how_to_read_it():
     built = stocks.build({}, {}, [], [], {}, {})
-    assert set(built["lists"]) == set(built["notes"]) == {"watchlist", "trending", "dipping", "tech"}
+    assert set(built["lists"]) == {"watchlist", "trending", "dipping", "tech"}
+    # Compare is a table, not a list, but it gets the same how-to-read note.
+    assert set(built["notes"]) == set(built["lists"]) | {"compare"}
     for note in built["notes"].values():
         assert note["what"] and note["careful"]
 
@@ -265,3 +267,25 @@ def test_watchlist_rows_cover_stocks_funds_and_share_classes_in_order():
 def test_a_watchlist_symbol_with_no_data_yet_still_gets_a_row():
     rows = stocks.watchlist_rows([{"symbol": "NEWCO"}], {}, {}, [], [], {}, today=TODAY)
     assert rows[0]["symbol"] == "NEWCO" and rows[0]["price"] is None
+
+
+def test_tradingview_layer_adds_value_cards_falls_and_the_comparison_table():
+    screener = {"ACME": row("ACME", cap=5e9, name="Acme")}
+    histories = {"ACME": history(150, 100, days=200)}
+    histories["ACME"][-3] = (histories["ACME"][-3][0], 140)  # one sharp day in the window
+    tv = {"ACME": {"name": "Acme", "industry": "Software", "sector": "Tech", "market_cap": 5e9,
+                   "pe": 30.0, "eps": 2.0, "fcf": 2e8, "revenue": 1e9, "beta": 1.2,
+                   "revenue_growth": 20.0, "operating_margin": 15.0, "roic": 14.0,
+                   "earnings_next": "2026-11-01", "price": 100.0},
+          "NVDA": {"name": "Nvidia", "industry": "Semis", "market_cap": 5e12, "pe": 29.0,
+                   "fcf": 1e11, "revenue": 3e11, "price": 230.0}}
+    built = stocks.build(screener, histories, [], [], {}, {}, today=TODAY,
+                         watchlist=[{"symbol": "ACME"}], tv=tv,
+                         peers={"market_1m": 1.0, "industries": {}}, medians={})
+    card = built["lists"]["watchlist"][0]
+    assert card["earnings_next"] == "2026-11-01"
+    assert card["fell"]["parts"]["total"] < 0
+    assert {"ACME", "NVDA"} <= set(built["profiles"])
+    compare = {r["symbol"]: r for r in built["compare"]}
+    assert compare["ACME"]["mine"] is True and compare["NVDA"]["mine"] is False
+    assert compare["NVDA"]["fcf_yield"] == 2.0 and compare["NVDA"]["ps"] == 16.7

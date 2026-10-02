@@ -1,0 +1,294 @@
+{
+"items": [
+{
+"id": "zacks:7dafb6f6e094b:0",
+"title": "uniQure Plunges on Additional Data From Huntington's Disease Study",
+"provider": "zacks",
+"sourceLogoId": "zacks",
+"published": 1790786820,
+"source": "Zacks",
+"urgency": 2,
+"link": "https://www.zacks.com/stock/news/2998447/uniqure-plunges-on-additional-data-from-huntington-s-disease-study?cid=CS-TRADINGVIEW-FT-analyst_blog|company_news_medical_sector-2998447",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/zacks:7dafb6f6e094b:0-uniqure-plunges-on-additional-data-from-huntington-s-disease-study/"
+},
+{
+"id": "DJN_DN20260930005989:0",
+"title": "uniQure Price Target Cut to $31.00/Share From $46.00 by Goldman Sachs",
+"provider": "dow-jones",
+"sourceLogoId": "dow-jones",
+"published": 1790783940,
+"source": "Dow Jones Newswires",
+"urgency": 2,
+"permission": "provider",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/DJN_DN20260930005989:0/"
+},
+{
+"id": "prnewswire:ea247d819c43a:0",
+"title": "uniQure Investigation Notice: SueWallSt Notifies Investors of Pending Investigation Into uniQure (QURE)",
+"provider": "prnewswire",
+"sourceLogoId": "pr_newswire",
+"published": 1790727120,
+"source": "PR Newswire",
+"urgency": 2,
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/prnewswire:ea247d819c43a:0-uniqure-investigation-notice-suewallst-notifies-investors-of-pending-investigation-into-uniqure-qure/"
+},
+{
+"id": "stocktwits:0797f2940094b:0",
+"title": "QURE Stock Clocks Worst Day In Over 10 Months: Four-Year Huntington\u2019s Data Spooks Investors Despite Stronger Three-Year Filing Data",
+"provider": "stocktwits",
+"sourceLogoId": "stocktwits",
+"published": 1790719687,
+"source": "Stocktwits",
+"urgency": 2,
+"link": "https://stocktwits.com/news-articles/markets/equity/qure-stock-clocks-worst-day-in-over-10-months-four-year-huntington-s-data-spooks-investors-despite-stronger-three-year-filing-data/cZMZh6KRBWi",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/stocktwits:0797f2940094b:0-qure-stock-clocks-worst-day-in-over-10-months-four-year-huntington-s-data-spooks-investors-despite-stronger-three-year-filing-data/"
+},
+{
+"id": "marketbeat:3bd88c443094b:0",
+"title": "uniQure BLA Filed as AMT-130 Shows 4-Year Huntington\u2019s Functional Benefit",
+"provider": "marketbeat",
+"sourceLogoId": "marketbeat",
+"published": 1790712129,
+"source": "MarketBeat",
+"urgency": 2,
+"link": "https://www.marketbeat.com/instant-alerts/event-uniqure-bla-filed-as-amt-130-shows-4-year-huntingtons-functional-benefit-2026-09-29/",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/marketbeat:3bd88c443094b:0-uniqure-bla-filed-as-amt-130-shows-4-year-huntington-s-functional-benefit/"
+},
+{
+"id": "urn:summary_document_transcript:quartr.com:4210158:0",
+"title": "QURE: AMT-130 shows sustained, clinically meaningful slowing of Huntington's disease progression at 48 months",
+"provider": "quartr",
+"sourceLogoId": "quartr",
+"published": 1790709755,
+"source": "Quartr",
+"urgency": 2,
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/urn:summary_document_transcript:quartr.com:4210158:0-qure-amt-130-shows-sustained-clinically-meaningful-slowing-of-huntington-s-disease-progression-at-48-months/"
+},
+{
+"id": "benzinga:d1e491ea9094b:0",
+"title": "Why Is uniQure Stock Sinking on Tuesday?",
+"provider": "benzinga",
+"sourceLogoId": "benzinga",
+"published": 1790692111,
+"source": "Benzinga",
+"urgency": 2,
+"link": "https://www.benzinga.com/trading-ideas/movers/26/09/62052218/why-is-uniqure-stock-sinking-on-tuesday?utm_source=tradingview&utm_campaign=partner_feed&utm_medium=referral",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/benzinga:d1e491ea9094b:0-why-is-uniqure-stock-sinking-on-tuesday/"
+},
+{
+"id": "DJN_DN20260929004774:0",
+"title": "UniQure Insists Huntington's Drug Is Still on Track as Stock Plunges 36% \u2014 Barrons.com",
+"provider": "dow-jones",
+"sourceLogoId": "dow-jones",
+"published": 1790691300,
+"source": "Dow Jones Newswires",
+"urgency": 2,
+"permission": "provider",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/DJN_DN20260929004774:0/"
+},
+{
+"id": "urn:summary_document_slides:quartr.com:4210012:0",
+"title": "QURE: AMT-130 high-dose gene therapy significantly slowed Huntington's disease progression over 48 months",
+"provider": "quartr",
+"sourceLogoId": "quartr",
+"published": 1790690072,
+"source": "Quartr",
+"urgency": 2,
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/urn:summary_document_slides:quartr.com:4210012:0-qure-amt-130-high-dose-gene-therapy-significantly-slowed-huntington-s-disease-progression-over-48-months/"
+},
+{
+"id": "tradingview:f877d5d818048:0",
+"title": "uniQure: AMT-130 phase I/II data show sustained functional benefit at 36\u201348 months",
+"provider": "tradingview",
+"sourceLogoId": "tradingview",
+"published": 1790687580,
+"source": "TradingView",
+"urgency": 2,
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/tradingview:f877d5d818048:0-uniqure-amt-130-phase-i-ii-data-show-sustained-functional-benefit-at-36-48-months/"
+},
+{
+"id": "DJN_DN20260929004588:0",
+"title": "UniQure Stock Drops After Huntington's Drug Results Disappoint at 4-Year Mark",
+"provider": "dow-jones",
+"sourceLogoId": "dow-jones",
+"published": 1790687520,
+"source": "Dow Jones Newswires",
+"urgency": 2,
+"permission": "provider",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/DJN_DN20260929004588:0/"
+},
+{
+"id": "stocktwits:958120278094b:0",
+"title": "QURE Stock Is On Track To Shed About Half Its Market Cap Despite Encouraging Huntington\u2019s Disease Data \u2013 Here\u2019s What Investors Need To Know",
+"provider": "stocktwits",
+"sourceLogoId": "stocktwits",
+"published": 1790686719,
+"source": "Stocktwits",
+"urgency": 2,
+"link": "https://stocktwits.com/news-articles/markets/equity/qure-stock-crash-uniqure-huntington-disease-data/cZMZb9qRBgl",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/stocktwits:958120278094b:0-qure-stock-is-on-track-to-shed-about-half-its-market-cap-despite-encouraging-huntington-s-disease-data-here-s-what-investors-need-to-know/"
+},
+{
+"id": "seekingalpha:12a0c1b74094b:0",
+"title": "uniQure plunges after new trial data for Huntington\u2019s disease therapy",
+"provider": "seekingalpha",
+"sourceLogoId": "seekingalpha",
+"published": 1790682963,
+"source": "Seeking Alpha",
+"urgency": 2,
+"link": "https://seekingalpha.com/news/4647940-uniqure-posts-new-data-huntingtons-disease-drug?utm_source=tradingview&utm_medium=referral&feed_item_type=news",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/seekingalpha:12a0c1b74094b:0-uniqure-plunges-after-new-trial-data-for-huntington-s-disease-therapy/"
+},
+{
+"id": "tag:reuters.com,2026:newsml_L4N45L0YW:0",
+"title": "UniQure plunges as Huntington's trial data disappoints investors",
+"provider": "reuters",
+"sourceLogoId": "reuters",
+"published": 1790682898,
+"source": "Reuters",
+"urgency": 2,
+"permission": "headline",
+"relatedSymbols": [
+{
+"symbol": "NASDAQ:QURE",
+"logoid": "uniqure-n-v",
+"logo": {
+"style": "single",
+"logoid": "uniqure-n-v"
+}
+}
+],
+"storyPath": "/news/reuters.com,2026:newsml_L4N45L0YW:0-uniqure-plunges-as-huntington-s-trial-data-disappoints-investors/"
+}
+]
+}

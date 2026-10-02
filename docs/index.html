@@ -268,6 +268,134 @@
   kbd { background:var(--chip); border:1px solid var(--border); border-radius:4px; padding:0 4px;
         font:inherit; font-size:11px; }
   .disclaimer { margin-top:8px; font-size:12px; }
+  /* why it fell, value card */
+  details.panel { border-top:1px solid var(--border); padding-top:6px; font-size:13px; }
+  details.panel > summary { cursor:pointer; font-weight:650; font-size:12.5px; list-style:none;
+                            display:flex; gap:6px; align-items:center; }
+  details.panel > summary::-webkit-details-marker { display:none; }
+  details.panel > summary::before { content:'▸'; color:var(--muted); font-size:10px; }
+  details.panel[open] > summary::before { content:'▾'; }
+  details.panel p { margin:6px 0; }
+  .conf { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+          border-radius:4px; padding:1px 6px; background:var(--chip); color:var(--muted); }
+  .conf.clear { background:var(--accent-soft); color:var(--accent); }
+  .conf.unclear { background:var(--warn-soft); color:var(--warn); }
+  .split { display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--bar);
+           margin:6px 0 3px; }
+  .split i { display:block; height:100%; }
+  .split .m { background:var(--neutral); opacity:.55; }
+  .split .ind { background:var(--warn); }
+  .split .co { background:var(--down); }
+  .split-key { display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); }
+  .split-key b { font-weight:650; color:var(--text); }
+  .dot.m { background:var(--neutral); opacity:.55; } .dot.ind { background:var(--warn); }
+  .dot.co { background:var(--down); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:3px;
+         vertical-align:0; }
+  .cause { margin:6px 0; padding:6px 8px; background:var(--chip); border-radius:6px; }
+  .cause b { display:block; font-size:12.5px; }
+  .cause span { color:var(--muted); font-size:12px; }
+  .evid { list-style:none; margin:4px 0; padding:0; }
+  .evid li { padding:3px 0; font-size:12.5px; }
+  .evid .d { color:var(--muted); font-size:11px; margin-right:5px; font-variant-numeric:tabular-nums; }
+  .peers { font-size:12px; color:var(--muted); }
+  .ripple { border-left:3px solid var(--accent); padding:4px 8px; margin:6px 0; font-size:12.5px; }
+  .checks { list-style:none; margin:6px 0; padding:0; }
+  .checks li { display:flex; gap:7px; padding:3px 0; font-size:12.5px; align-items:baseline; }
+  .tone { flex:0 0 9px; height:9px; border-radius:50%; background:var(--bar); margin-top:3px; }
+  .tone.good { background:var(--up); } .tone.bad, .tone.low { background:var(--down); }
+  .tone.mid { background:var(--warn); }
+  .vgroup { margin-top:8px; }
+  .vgroup h4 { margin:0 0 3px; font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+               color:var(--muted); font-weight:650; }
+  .vrow { display:grid; grid-template-columns:minmax(92px, auto) 1fr; gap:2px 10px; padding:3px 0;
+          border-top:1px dashed var(--border); font-size:12.5px; }
+  .vrow .vv { font-variant-numeric:tabular-nums; font-weight:650; }
+  .vrow .vv small { display:block; font-weight:400; color:var(--muted); font-size:11px; }
+  .vrow .vr { color:var(--muted); }
+  .dcf { background:var(--chip); border-radius:8px; padding:8px 10px; margin-top:8px; }
+  .dcf label { font-size:12px; color:var(--muted); display:inline-flex; gap:4px; align-items:center;
+               margin-right:10px; }
+  .dcf input { width:58px; font:inherit; font-size:12.5px; padding:2px 5px; color:var(--text);
+               background:var(--card); border:1px solid var(--border); border-radius:5px; }
+  .dcf .out { font-size:13px; margin-top:5px; }
+  .chipline { font-size:11.5px; color:var(--muted); }
+  .cmp-wrap { overflow-x:auto; background:var(--card); border:1px solid var(--border);
+              border-radius:10px; }
+  table.cmp { border-collapse:collapse; width:100%; font-size:12.5px; min-width:760px; }
+  table.cmp th, table.cmp td { padding:6px 9px; border-bottom:1px solid var(--border);
+                               text-align:right; white-space:nowrap; }
+  table.cmp th { font-size:11px; color:var(--muted); font-weight:650; cursor:pointer;
+                 position:sticky; top:0; background:var(--card); }
+  table.cmp th:first-child, table.cmp td:first-child { text-align:left; position:sticky; left:0;
+                                                       background:var(--card); }
+  table.cmp tr.mine td:first-child { box-shadow:inset 3px 0 0 var(--accent); }
+  table.cmp tr:hover td { background:var(--accent-soft); }
+  table.cmp td.na { color:var(--muted); }
+  #cmp-detail { margin-top:10px; }
+
+  /* what could happen */
+  .lean { font-size:15px; line-height:1.5; margin:0 0 10px; }
+  .scen-grid { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); }
+  .scen { background:var(--card); border:1px solid var(--border); border-radius:10px;
+          padding:11px 13px; display:flex; flex-direction:column; gap:6px; cursor:pointer; }
+  .scen.top { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+  .scen h3 { margin:0; font-size:15px; }
+  .scen .tg { font-size:12.5px; color:var(--muted); }
+  .outcome { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+             border-radius:4px; padding:1px 6px; align-self:flex-start; }
+  .outcome.right { background:var(--accent-soft); color:var(--up); }
+  .outcome.wrong { background:var(--warn-soft); color:var(--down); }
+  .outcome.mixed { background:var(--chip); color:var(--warn); }
+  .meter { display:flex; gap:3px; align-items:center; font-size:11.5px; color:var(--muted); }
+  .meter i { width:16px; height:6px; border-radius:2px; background:var(--bar); }
+  .meter i.on { background:var(--accent); }
+  .scen-detail { display:none; }
+  .scen.open .scen-detail { display:block; }
+  .scen-detail p { margin:6px 0; font-size:13px; }
+  ol.chain { margin:6px 0; padding-left:20px; font-size:13px; }
+  ol.chain li { margin-bottom:3px; }
+  .inds { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
+  .ind { font-size:11.5px; border-radius:4px; padding:1px 6px; background:var(--chip); }
+  .ind.up { color:var(--up); } .ind.down { color:var(--down); }
+  .ind[title] { cursor:help; }
+  .posts { list-style:none; margin:6px 0; padding:0; font-size:12.5px; }
+  .posts li { display:flex; gap:6px; padding:2px 0; }
+  .posts .ok { color:var(--up); flex:0 0 14px; } .posts .no { color:var(--muted); flex:0 0 14px; }
+  .posts .cur { margin-left:auto; color:var(--muted); font-variant-numeric:tabular-nums;
+                white-space:nowrap; }
+  .flows { display:grid; gap:9px; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); }
+  .flow { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:11px 13px;
+          font-size:13px; }
+  .flow h3 { margin:0 0 3px; font-size:14.5px; }
+  .flow .now { color:var(--muted); font-size:12px; margin-bottom:6px; }
+  .steps { list-style:none; margin:6px 0; padding:0; }
+  .steps li { position:relative; padding:0 0 8px 18px; }
+  .steps li::before { content:''; position:absolute; left:4px; top:6px; width:7px; height:7px;
+                      border-radius:50%; background:var(--accent); }
+  .steps li:not(:last-child)::after { content:''; position:absolute; left:7px; top:14px; bottom:0;
+                                      width:1px; background:var(--border); }
+  .steps .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+                color:var(--accent); font-weight:700; }
+  .rw { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
+  .rw div { background:var(--chip); border-radius:6px; padding:6px 8px; font-size:12.5px; }
+  .rw b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+  .rw .r b { color:var(--up); } .rw .w b { color:var(--down); }
+  .check { margin-top:7px; font-size:12px; color:var(--muted); }
+  .check b { color:var(--text); }
+  table.hyp { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.hyp td, table.hyp th { padding:5px 7px; border-bottom:1px solid var(--border); text-align:left; }
+  table.hyp th { font-size:11px; color:var(--muted); font-weight:650; }
+  .st { font-size:10.5px; font-weight:700; text-transform:uppercase; border-radius:4px; padding:1px 6px;
+        background:var(--chip); color:var(--muted); white-space:nowrap; }
+  .st.right { color:var(--up); } .st.wrong { color:var(--down); }
+  .st.track { color:var(--accent); }
+  .ja { color:var(--muted); font-weight:400; font-size:12px; margin-left:4px; }
+  @media (max-width:620px) {
+    .rw { grid-template-columns:1fr; }
+    .flows { grid-template-columns:1fr; }
+    table.hyp .opt { display:none; }
+  }
   @media (max-width:620px) {
     .sub.hide-sm { display:none; }
     .cal .when { flex-basis:92px; }
@@ -291,6 +419,7 @@
     <nav>
       <a href="#today">Today</a>
       <a href="#picture">Big picture</a>
+      <a href="#future">What's next</a>
       <a href="#stocks">Stocks</a>
       <a href="#coming">Coming up</a>
       <a href="#markets">Markets</a>
@@ -317,6 +446,30 @@
       Tap a card to learn what it is and why it matters to you.</p>
     <p class="lead adv-only">Seven reads, in the order causation runs. Click any tile.</p>
     <div class="tiles" id="regime-tiles"></div>
+  </section>
+
+  <section id="future">
+    <h2>What could happen next</h2>
+    <p class="lead">Nobody knows the future, so instead of one prediction here are the four
+      ways the economy can go, the chain of cause and effect behind each, and the measurable
+      signs that tell you which one is arriving. Which way today's data leans is computed,
+      not guessed. Tap a scenario to see its reasoning.</p>
+    <div class="card" id="lean-card"><div class="status">Loading…</div></div>
+    <div class="scen-grid" id="scen-grid" style="margin-top:9px"></div>
+    <h3 class="small-head" style="margin-top:20px">Knock-on effects switched on today</h3>
+    <p class="lead">When something big changes, the first effect is obvious; the money is
+      usually in the second and third. Each chain below was switched on by today's data or
+      news, says which industries it reaches and how, and what would break it.</p>
+    <div class="flows" id="active-chains"></div>
+    <div id="model-chains"></div>
+    <details class="lesson" style="margin-top:12px"><summary>More chains to learn
+      <span class="mins" id="lib-n"></span></summary>
+      <div class="lesson-body"><div class="flows" id="chain-library"></div></div></details>
+    <h3 class="small-head" style="margin-top:20px">Prediction track record</h3>
+    <p class="lead">Reasoning is only worth something if it's checked. Each chain above leaves
+      a prediction tied to a number this page tracks; when its date comes, it's scored
+      against what actually happened.</p>
+    <div class="card" id="hyp-card"><div class="status">No predictions yet.</div></div>
   </section>
 
   <section id="stocks">
@@ -392,7 +545,7 @@
 
   <section id="learn">
     <h2>Learn the basics</h2>
-    <p class="lead">Seven short lessons, in order. Each takes a few minutes, and together they
+    <p class="lead">Ten short lessons, in order. Each takes a few minutes, and together they
       explain everything on this page. Then a glossary of every term used here.</p>
     <div class="lessons" id="lessons"></div>
     <h3 class="small-head" style="margin-top:22px">Glossary</h3>
@@ -425,7 +578,7 @@ const LS = {
 const state = {
   mode: LS.get('mode', 'beginner'),
   items: [], categories: {}, horizons: {}, assets: {},
-  market: null, stocks: null,
+  market: null, stocks: null, scen: null, openScen: '', cmpSort: '',
   stockTab: LS.get('stockTab', ''),   // '' = decide once the data is in
   myTickers: LS.get('myTickers', []),
   listing: null,
@@ -460,7 +613,6 @@ const GLOSSARY = {
   'index': 'A list of stocks whose combined price is tracked as one number, like the S&P 500.',
   'index fund': 'A fund that simply buys every stock in an index, so you own a tiny slice of all of them at once.',
   'ETF': 'Exchange-traded fund: a basket of stocks or bonds you can buy like a single stock. Many index funds are ETFs.',
-  'market cap': 'What a whole company is worth on the stock market: the share price times the number of shares.',
   'earnings': 'A company\'s profit. "Earnings season" is when companies report their quarterly results.',
   'guidance': 'What a company tells investors it expects to earn next. Changes to guidance often move a stock more than the results themselves.',
   'dividend': 'Cash a company pays out to its shareholders, usually every quarter.',
@@ -507,7 +659,77 @@ const GLOSSARY = {
   'Reddit': 'A discussion site; several of its forums are devoted to stocks and investing.',
   'percentile': 'Where a number ranks against its own history. The 90th percentile means higher than 90% of past readings.',
   'regime': 'The overall state the economy and markets are in, like "inflation high, growth slowing".',
+  // -- what a company is worth (each with its formula and a worked example)
+  'market cap': 'What the whole company costs on the stock market: share price x number of shares. McDonald\'s: $231 x 716 million shares = about $165 billion. The share price alone means nothing - cutting a pizza into 16 slices instead of 8 halves the price of a slice, not the pizza.',
+  'enterprise value': 'EV = market cap + debt - cash. The price of buying the whole company INCLUDING the debt you would take on. Used to compare companies with very different amounts of debt.',
+  'revenue': 'All the money customers paid the company in a year, before any costs. Also called sales.',
+  'net income': 'Profit: what is left of revenue after every cost - materials, wages, rent, interest and taxes.',
+  'EPS': 'Earnings per share = net income / number of shares. McDonald\'s earned $12.36 per share.',
+  'operating cash flow': 'OCF: the cash the main business actually brought in during the year.',
+  'CapEx': 'Capital expenditure: cash spent on factories, stores, data centres and equipment.',
+  'free cash flow': 'FCF = operating cash flow - CapEx: the cash left over that the company can actually use. Profit is an accounting figure; FCF is real money moving, so it is harder to dress up.',
+  'FCF': 'Free cash flow: operating cash flow minus capital expenditure - the cash actually left over.',
+  'P/E': 'Price-to-earnings ratio = share price / EPS. McDonald\'s: 231 / 12.36 = about 19, meaning "at today\'s profit, it takes 19 years of earnings to pay back the price". Higher means the price expects more growth, not that it is "too expensive".',
+  'earnings yield': 'EPS / share price - the P/E flipped over. McDonald\'s: 12.36 / 231 = 5.4%, readable like an interest rate: $100 of shares "earns" $5.40 of profit a year.',
+  'P/S': 'Price-to-sales = market cap / revenue. Used for companies that have no profit yet, where P/E cannot be calculated.',
+  'P/FCF': 'Price-to-free-cash-flow = market cap / FCF. Years of today\'s cash it takes to pay the price.',
+  'FCF yield': 'FCF / market cap - P/FCF flipped over. 4.7% means every $100 of shares produces about $4.70 of free cash a year.',
+  'EBITDA': 'Earnings before interest, taxes, depreciation and amortization - profit before the items that differ most between companies, so they can be compared fairly.',
+  'EV/EBITDA': 'Enterprise value / EBITDA. Like P/E, but unaffected by how much debt a company has or what tax it pays.',
+  'PEG': 'P/E divided by the profit growth rate (in %). Around 1 means the P/E matches the growth; under 1, the price asks less than the growth delivers; over 2, it assumes more than recent growth explains.',
+  'P/B': 'Price-to-book = market cap / shareholders\' equity (what would be left if assets were sold and debts paid). Most useful for banks.',
+  'forward P/E': 'Price / NEXT year\'s expected earnings. If it is much lower than today\'s P/E, profits are expected to grow fast.',
+  'gross margin': '(Revenue - direct cost of what was sold) / revenue. How profitable the product itself is. Nvidia keeps about 75%, Starbucks about 22% - chip designs cost little to copy; coffee needs beans, milk and staff.',
+  'operating margin': 'Operating profit / revenue: profit after research, marketing and overhead too. Cloudflare has a ~75% gross margin but a negative operating margin - the product makes money, but spending on growth exceeds it.',
+  'net margin': 'Net income / revenue: what is left of every $100 of sales after everything. Meta keeps about $30, Tesla about $4.',
+  'ROE': 'Return on equity = net income / shareholders\' equity: profit per dollar shareholders put in. Meaningless for companies like McDonald\'s whose buybacks pushed equity below zero.',
+  'ROIC': 'Return on invested capital = after-tax operating profit / (equity + debt). If ROIC is above the WACC, every dollar invested creates value; below it, growth destroys value.',
+  'revenue growth': 'How much sales grew in a year. Always read a valuation multiple next to it: a high P/E with fast growth is a different thing from a high P/E with slow growth.',
+  'debt-to-equity': 'D/E = debt / shareholders\' equity: how much the company leans on borrowing. Under 0.5 is light; above 1.5 is heavy.',
+  'current ratio': 'Assets that turn into cash within a year / bills due within a year. Under 1 means thin short-term cover - normal for businesses paid in cash daily (restaurants), a warning for others.',
+  'beta': 'How much a stock moves when the whole market moves 1%. Tesla ~1.9 moves almost twice as much; a utility at 0.5 moves half as much. Higher beta raises the return investors require.',
+  'WACC': 'Weighted average cost of capital: the yearly return a company\'s shareholders and lenders require, averaged by how much each provides. Example: 80% shareholders wanting 10%, 20% lenders at 5% with a 20% tax rate: 0.8x10% + 0.2x5%x0.8 = 8.8%.',
+  'cost of equity': 'The yearly return shareholders require. Here estimated as the 10-year Treasury yield plus beta x 5%.',
+  'cost of debt': 'The interest rate the company pays to borrow. Interest cuts taxes, so it counts at x(1 - tax rate).',
+  'DCF': 'Discounted cash flow: forecast free cash flow for ~10 years, convert each year to today\'s money with the WACC, add a terminal value for everything after, subtract debt, add cash, divide by shares - that is the "intrinsic value" per share.',
+  'present value': 'What future money is worth today. $100 next year at a 9% discount rate is worth 100/1.09 = $92 today; in two years, 100/1.09² = $84 - because money you have now can be invested and grow.',
+  'discount rate': 'The yearly return you require, used to turn future money into today\'s value. Riskier companies get a higher one.',
+  'terminal value': 'The value of all cash flows after the forecast years, assuming they grow at a steady rate forever: next year\'s FCF / (WACC - growth rate). Usually most of a DCF\'s answer.',
+  'intrinsic value': 'What a share is worth according to a valuation model like a DCF, as opposed to its market price. It is only as good as its assumptions.',
+  'price target': 'An analyst\'s guess at where the share price will be in 12 months. Often wrong, and frequently changed after the price has already moved.',
+  'earnings surprise': 'How far actual results came in above or below what analysts expected. Prices react to the surprise, not to the result itself.',
+  'spin-off': 'When a company splits off part of its business into a separately listed company and hands shareholders the new shares. The old share price drops by roughly the value split off.',
+  // -- thinking ahead
+  'scenario': 'One plausible way the future could unfold, with the reasoning behind it. Thinking in several scenarios beats betting on one forecast.',
+  'second-order effect': 'The knock-on consequence of a change - not the obvious first effect but what the first effect causes. Tariffs raise import prices (first order); retailers\' profits shrink and factories move to Mexico (second order).',
+  'signpost': 'A measurable sign, set in advance, that tells you which scenario is arriving - e.g. "weekly layoff claims above 260,000".',
+  'soft landing': 'Inflation coming down without a recession. The outcome central banks aim for, and rarely fully achieve.',
+  'stagflation': 'Slow growth plus high inflation - the worst mix for both stocks and bonds, because the Fed cannot cut rates to help.',
 };
+// The Japanese term for each, shown beside it in the glossary and popovers.
+const GLOSSARY_JA = {
+  'stock': '株式', 'share': '株', 'market cap': '時価総額', 'enterprise value': '企業価値', 'revenue': '売上',
+  'net income': '純利益', 'EPS': '1株あたり利益', 'operating cash flow': '営業キャッシュフロー',
+  'CapEx': '設備投資', 'free cash flow': 'フリーキャッシュフロー', 'FCF': 'フリーキャッシュフロー',
+  'P/E': '株価収益率（PER）', 'earnings yield': '益回り', 'P/S': '株価売上高倍率（PSR）',
+  'P/FCF': '株価FCF倍率', 'FCF yield': 'FCF利回り', 'EBITDA': '利払い・税引き・償却前利益',
+  'EV/EBITDA': '企業価値EBITDA倍率', 'PEG': 'PEGレシオ', 'P/B': '株価純資産倍率（PBR）',
+  'forward P/E': '予想PER', 'gross margin': '売上総利益率', 'operating margin': '営業利益率',
+  'net margin': '純利益率', 'ROE': '自己資本利益率', 'ROIC': '投下資本利益率', 'revenue growth': '売上成長率',
+  'debt-to-equity': '負債資本倍率（D/E）', 'current ratio': '流動比率', 'beta': 'ベータ',
+  'WACC': '加重平均資本コスト', 'cost of equity': '株主資本コスト', 'cost of debt': '負債コスト',
+  'DCF': '割引キャッシュフロー法', 'present value': '現在価値', 'discount rate': '割引率',
+  'terminal value': '継続価値', 'intrinsic value': '本来の価値（本源的価値）', 'price target': '目標株価',
+  'earnings surprise': '決算サプライズ', 'spin-off': 'スピンオフ（事業分離）', 'earnings': '利益・決算',
+  'guidance': '業績見通し', 'dividend': '配当', 'inflation': 'インフレ', 'interest rate': '金利',
+  'bond': '債券', 'yield': '利回り', 'recession': '景気後退', 'index': '指数', 'index fund': 'インデックスファンド',
+  'volatility': '変動率（ボラティリティ）', 'sector': '業種（セクター）', 'tariff': '関税',
+  'scenario': 'シナリオ', 'second-order effect': '二次的影響（波及効果）', 'signpost': '判断の目安となる指標',
+  'soft landing': 'ソフトランディング', 'stagflation': 'スタグフレーション', 'dip': '下落',
+  'correction': '調整', 'bear market': '弱気相場', 'bull market': '強気相場', 'GDP': '国内総生産',
+  'unemployment rate': '失業率', 'credit spread': '信用スプレッド', 'the Fed': '米連邦準備制度（FRB）',
+};
+const jaOf = term => GLOSSARY_JA[term] ? `<span class="ja">${esc(GLOSSARY_JA[term])}</span>` : '';
 // Longest terms first, so "10-year Treasury yield" wins over "Treasury" and "yield".
 const TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
 const TERM_RE = new RegExp('(^|[^\\w-])(' +
@@ -536,7 +758,7 @@ document.addEventListener('click', e => {
   e.stopPropagation();
   e.preventDefault();
   const key = term.dataset.term;
-  pop.innerHTML = `<b>${esc(key)}</b>${esc(GLOSSARY[key] || '')}`;
+  pop.innerHTML = `<b>${esc(key)}${jaOf(key)}</b>${esc(GLOSSARY[key] || '')}`;
   pop.style.display = 'block';
   const r = term.getBoundingClientRect();
   const width = Math.min(300, window.innerWidth - 24);
@@ -749,6 +971,7 @@ const STOCK_TABS = [
   ['trending', 'Trending'],
   ['dipping', 'Popular, but falling'],
   ['tech', 'Popular with tech people'],
+  ['compare', 'Compare'],
 ];
 const SIZE_WORDS = {
   'giant': 'a giant', 'large': 'a large', 'mid-size': 'a mid-size',
@@ -773,9 +996,9 @@ function renderStocks() {
     // First visit: open on your own list if you have one.
     state.stockTab = (lists.watchlist.length || state.myTickers.length) ? 'watchlist' : 'trending';
   }
-  if (!lists[state.stockTab]) state.stockTab = 'trending';
+  if (!lists[state.stockTab] && state.stockTab !== 'compare') state.stockTab = 'trending';
   const counts = { ...Object.fromEntries(Object.entries(lists).map(([k, v]) => [k, v.length])),
-                   watchlist: watchSymbols().length };
+                   watchlist: watchSymbols().length, compare: (data.compare || []).length };
   document.getElementById('stock-tabs').innerHTML = STOCK_TABS.map(([key, label]) =>
     `<button class="tab" data-tab="${key}" aria-pressed="${key === state.stockTab}">${esc(label)}
       <span class="n">${counts[key] || 0}</span></button>`).join('');
@@ -785,6 +1008,8 @@ function renderStocks() {
     <div class="callout warn" style="margin:0 0 12px"><b>Read this first:</b> ${g(note.careful)}</div>` : '';
   if (state.stockTab === 'watchlist') {
     renderWatchlist(lists.watchlist, grid);
+  } else if (state.stockTab === 'compare') {
+    renderCompare(grid);
   } else {
     const rows = lists[state.stockTab] || [];
     grid.innerHTML = rows.length ? rows.map(stockCard).join('')
@@ -792,7 +1017,8 @@ function renderStocks() {
   }
   const asof = data.data_as_of ? `Data from ${fmtAge(data.data_as_of)} ago. ` : '';
   document.getElementById('stock-asof').textContent = asof +
-    'Prices and company data from Nasdaq; discussion from Stocktwits, Reddit (via ApeWisdom) and Hacker News.';
+    'Prices from Nasdaq; company financials, earnings dates and per-company news from TradingView; ' +
+    'discussion from Stocktwits, Reddit (via ApeWisdom) and Hacker News.';
 }
 
 function stockCard(r) {
@@ -819,9 +1045,304 @@ function stockCard(r) {
     <div class="moves"><span><b>${fmtPrice(r.price)}</b></span>${moves.join('')}</div>
     ${why}${news}
     ${badges ? `<div class="badges">${badges}</div>` : ''}
-    <div class="slinks"><a href="${nasdaq}" target="_blank" rel="noopener">Chart &amp; details ↗</a></div>
+    ${r.earnings_next ? `<div class="chipline">Next earnings report: <b>${esc(fmtDay(r.earnings_next))}</b></div>` : ''}
+    ${r.fell ? fellHtml(r) : ''}
+    ${valueHtml(r.symbol, r.price)}
+    <div class="slinks"><a href="${nasdaq}" target="_blank" rel="noopener">Chart &amp; details ↗</a>
+      <a href="https://www.tradingview.com/symbols/${encodeURIComponent(r.symbol.replace('/', '.'))}/" target="_blank" rel="noopener">TradingView ↗</a></div>
   </article>`;
 }
+
+// -- why it fell -----------------------------------------------------------
+
+const CONF_WORDS = { clear: 'Clear cause', likely: 'Likely cause', unclear: 'Cause unclear' };
+
+function fellHtml(r) {
+  const f = r.fell;
+  const p = f.parts || {};
+  const used = new Set();
+  // The split bar shows how much of the month's fall belongs to whom. Only
+  // the parts that pushed DOWN are drawn - a market that rose is not part of
+  // a fall.
+  let bar = '';
+  if (f.kind !== 'day' && p.total < 0) {
+    const segs = [['m', p.market, 'The whole market'],
+                  ['ind', p.industry_extra, `${f.group}, beyond the market`],
+                  ['co', p.company, 'This company alone']];
+    const sum = segs.reduce((a, [, v]) => a + Math.abs(Math.min(v, 0)), 0) || 1;
+    bar = `<div class="split" role="img" aria-label="How the fall splits">${segs.map(([c, v, t]) =>
+      v < 0 ? `<i class="${c}" style="width:${(Math.abs(v) / sum * 100).toFixed(1)}%" title="${esc(t)}: ${v.toFixed(0)} points"></i>` : '').join('')}</div>
+      <div class="split-key">${segs.map(([c, v, t]) => `<span><span class="dot ${c}"></span>${esc(t)} <b>${v > 0 ? '+' : ''}${v.toFixed(1)}</b></span>`).join('')}
+        <span>points of the ${p.total.toFixed(0)}% move</span></div>`;
+  }
+  const causes = (f.causes || []).map(c =>
+    `<div class="cause"><b>${esc(c.label)}</b><span>${gloss(esc(c.why), used)}</span></div>`).join('');
+  const evidence = (f.evidence || []).length ? `<ul class="evid">${f.evidence.map(e =>
+    `<li><span class="d">${esc(fmtDay(e.on))}</span><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title)}</a>
+      <span class="src" style="color:var(--muted);font-size:11px"> — ${esc(e.source)}</span></li>`).join('')}</ul>` : '';
+  const peers = (f.peers || []).length ? `<div class="peers">Others in ${esc(f.group)} this month: ${f.peers.map(x =>
+    `${esc(x.symbol)} ${x.perf_1m > 0 ? '+' : ''}${x.perf_1m.toFixed(0)}%`).join(' · ')}</div>` : '';
+  const ripple = state.scen && state.scen.model && (state.scen.model.ripples || {})[r.symbol];
+  const open = state.stockTab === 'dipping' ? ' open' : '';
+  return `<details class="panel"${open}><summary>Why it fell <span class="conf ${esc(f.confidence)}">${esc(CONF_WORDS[f.confidence] || f.confidence)}</span></summary>
+    <p>${gloss(esc(f.summary), used)}</p>${bar}${causes}${evidence}${peers}
+    ${ripple ? `<div class="ripple"><b>Who else it reaches:</b> ${gloss(esc(ripple), used)}</div>` : ''}
+  </details>`;
+}
+
+// -- value card --------------------------------------------------------------
+// Built from the TradingView fundamentals, in the order the ideas build: what
+// the company costs, what it earns, price vs earnings, quality, growth, risk,
+// expectations. The DCF box lets the reader change the two assumptions that
+// matter and see the value move - the point is to feel how sensitive it is.
+
+function profileOf(symbol) {
+  return state.stocks && state.stocks.profiles && state.stocks.profiles[symbol];
+}
+
+function valueHtml(symbol, price, open) {
+  const pr = profileOf(symbol);
+  if (!pr) return '';
+  const used = new Set();
+  const first = (pr.first_three || []).map(c =>
+    `<li><span class="tone ${esc(c.tone)}"></span><span><b>${esc(c.question)}</b> ${gloss(esc(c.read || 'No data.'), used)}</span></li>`).join('');
+  const groups = (pr.groups || []).map(gr => `<div class="vgroup"><h4>${esc(gr.title)}</h4>${gr.items.map(it =>
+    `<div class="vrow"><div class="vv">${esc(METRIC_NAMES[it.id] || it.id)}<br>${esc(it.text)}${
+      it.typical_text ? `<small>industry typical ${esc(it.typical_text)}</small>` : ''}</div>
+      <div class="vr">${gloss(esc(it.read || ''), used)}</div></div>`).join('')}</div>`).join('');
+  const d = pr.dcf || {};
+  const canDcf = d.fcf > 0 && d.shares > 0;
+  const dcf = canDcf ? `<div class="dcf" data-sym="${esc(symbol)}" data-price="${price || ''}">
+      <b style="font-size:12.5px">Try it: a simple DCF</b>
+      <p style="margin:4px 0 6px;color:var(--muted);font-size:12px">Free cash flow ${esc(capText(d.fcf))} a year, grown for
+        ${d.years} years, then ${d.terminal_growth}% forever, discounted at the WACC
+        (${d.cost_equity}% for shareholders, ${d.cost_debt}% for lenders, ${d.equity_weight}% shareholder-funded).</p>
+      <label>Growth a year <input type="number" step="1" class="g" value="${Math.round(d.implied_growth ?? 10)}">%</label>
+      <label>WACC <input type="number" step="0.5" class="w" value="${d.wacc}">%</label>
+      <div class="out"></div></div>` : '';
+  return `<details class="panel"${open ? ' open' : ''}><summary>Value &amp; quality</summary>
+    <p><b>What the price assumes:</b> ${gloss(esc(d.read || ''), used)}</p>
+    <ul class="checks">${first}</ul>
+    <p style="color:var(--muted)">${esc(pr.verdict || '')}</p>
+    ${dcf}
+    <details class="panel" style="margin-top:6px"><summary>All the numbers</summary>${groups}</details>
+  </details>`;
+}
+
+const METRIC_NAMES = {
+  market_cap: 'Market cap', ev: 'Enterprise value (EV)', revenue: 'Revenue',
+  net_income: 'Net income', fcf: 'Free cash flow (FCF)', eps: 'EPS',
+  pe: 'P/E', earnings_yield: 'Earnings yield', ps: 'P/S', p_fcf: 'P/FCF',
+  fcf_yield: 'FCF yield', ev_ebitda: 'EV/EBITDA', peg: 'PEG',
+  gross_margin: 'Gross margin', operating_margin: 'Operating margin', net_margin: 'Net margin',
+  roe: 'ROE', roic: 'ROIC', revenue_growth: 'Revenue growth', eps_growth: 'EPS growth',
+  debt_to_equity: 'Debt/equity (D/E)', current_ratio: 'Current ratio', beta: 'Beta',
+  forward_pe: 'Forward P/E', target_avg: 'Analyst target',
+};
+
+function dcfValue(fcf, g, r, tg, years) {
+  let total = 0, cash = fcf;
+  for (let t = 1; t <= years; t++) { cash *= 1 + g; total += cash / Math.pow(1 + r, t); }
+  return total + cash * (1 + tg) / (r - tg) / Math.pow(1 + r, years);
+}
+
+function updateDcf(box) {
+  const d = (profileOf(box.dataset.sym) || {}).dcf;
+  if (!d) return;
+  const g = Number(box.querySelector('.g').value) / 100;
+  const w = Number(box.querySelector('.w').value) / 100;
+  const out = box.querySelector('.out');
+  const tg = d.terminal_growth / 100;
+  if (!(w > tg)) { out.textContent = `WACC must be above the ${d.terminal_growth}% long-run growth.`; return; }
+  const ev = dcfValue(d.fcf, g, w, tg, d.years);
+  const perShare = (ev - d.debt + d.cash) / d.shares;
+  const price = Number(box.dataset.price);
+  const gap = price ? ` - ${perShare >= price ? 'above' : 'below'} today's ${fmtPrice(price)} by ${Math.abs(perShare / price * 100 - 100).toFixed(0)}%` : '';
+  out.innerHTML = `Value per share on these assumptions: <b>${fmtPrice(perShare)}</b>${esc(gap)}.
+    <span style="color:var(--muted);font-size:11.5px">Change one input by a point and watch how far it moves - that sensitivity is the lesson.</span>`;
+}
+document.addEventListener('input', e => {
+  const box = e.target.closest('.dcf');
+  if (box) updateDcf(box);
+});
+document.addEventListener('toggle', e => {
+  if (e.target.matches && e.target.matches('details.panel'))
+    e.target.querySelectorAll('.dcf').forEach(updateDcf);
+}, true);
+
+// -- compare -----------------------------------------------------------------
+
+const CMP_COLS = [
+  ['price', 'Price', v => fmtPrice(v)],
+  ['eps', 'EPS', v => v == null ? '—' : '$' + v.toFixed(2)],
+  ['pe', 'P/E', v => v == null || v <= 0 ? 'loss' : v.toFixed(1)],
+  ['ps', 'P/S', v => v == null ? '—' : v.toFixed(1)],
+  ['p_fcf', 'P/FCF', v => v == null || v <= 0 ? '—' : v.toFixed(0)],
+  ['fcf_yield', 'FCF yield', v => v == null ? '—' : v.toFixed(1) + '%'],
+  ['revenue_growth', 'Revenue growth', v => v == null ? '—' : v.toFixed(0) + '%'],
+  ['gross_margin', 'Gross margin', v => v == null ? '—' : v.toFixed(0) + '%'],
+  ['operating_margin', 'Op. margin', v => v == null ? '—' : v.toFixed(0) + '%'],
+  ['roic', 'ROIC', v => v == null ? '—' : v.toFixed(0) + '%'],
+  ['debt_to_equity', 'D/E', v => v == null ? '—' : v.toFixed(2)],
+  ['beta', 'Beta', v => v == null ? '—' : v.toFixed(2)],
+];
+
+function renderCompare(grid) {
+  const rows = (state.stocks.compare || []).slice();
+  if (!rows.length) { grid.innerHTML = '<div class="status">No comparison data in this update.</div>'; return; }
+  const key = state.cmpSort || '';
+  if (key) rows.sort((a, b) => (b[key] ?? -Infinity) - (a[key] ?? -Infinity));
+  grid.innerHTML = `<div style="grid-column:1/-1">
+    <div class="cmp-wrap"><table class="cmp"><thead><tr><th data-k="">Company</th>${CMP_COLS.map(([k, label]) =>
+      `<th data-k="${k}" title="Sort by ${esc(label)}">${gloss(esc(label))}${key === k ? ' ▾' : ''}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr data-sym="${esc(r.symbol)}" class="${r.mine ? 'mine' : ''}" style="cursor:pointer">
+      <td><b>${esc(r.symbol)}</b> <span style="color:var(--muted)">${esc(r.name)}</span></td>${CMP_COLS.map(([k, , f]) =>
+        `<td class="${r[k] == null ? 'na' : ''}">${esc(f(r[k]))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="sub" style="margin-top:6px">Read a row left to right: the price, what one share earned (EPS), then what
+      you pay per dollar of profit (P/E), sales (P/S) and cash (P/FCF), and finally the quality and growth that might
+      justify it. Tap a column to sort, a row for its full value card.</p>
+    <div id="cmp-detail"></div></div>`;
+}
+document.addEventListener('click', e => {
+  const th = e.target.closest('table.cmp th');
+  if (th && !e.target.closest('.term')) {
+    state.cmpSort = th.dataset.k; renderStocks(); return;
+  }
+  const tr = e.target.closest('table.cmp tbody tr');
+  if (!tr) return;
+  const r = (state.stocks.compare || []).find(x => x.symbol === tr.dataset.sym);
+  const box = document.getElementById('cmp-detail');
+  box.innerHTML = `<article class="stock" style="max-width:640px"><div class="shead"><span class="sym">${esc(r.symbol)}</span>
+    <span class="nm">${esc(r.name)}</span></div><div class="what">${esc(r.industry)}</div>
+    ${valueHtml(r.symbol, r.price, true)}</article>`;
+  box.querySelectorAll('.dcf').forEach(updateDcf);
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+
+// -- what could happen ------------------------------------------------------
+
+const OUTCOME_WORDS = { right: 'Goes right', mixed: 'Mixed', wrong: 'Goes wrong' };
+
+function indChips(list) {
+  return `<div class="inds">${(list || []).map(i =>
+    `<span class="ind ${i.dir === '+' ? 'up' : i.dir === '-' ? 'down' : ''}" title="${esc(i.how || '')}">${
+      i.dir === '+' ? '▲' : i.dir === '-' ? '▼' : '◆'} ${esc(i.name)}</span>`).join('')}</div>`;
+}
+
+function renderFuture() {
+  const sc = state.scen;
+  const card = document.getElementById('lean-card');
+  if (!sc) return;
+  const model = sc.model || {};
+  const used = new Set();
+  card.innerHTML = `<p class="lean">${gloss(esc(sc.lean || ''), used)}</p>
+    ${model.outlook ? `<p style="margin:0 0 6px">${gloss(esc(model.outlook), used)}</p>
+      <div class="sub">Reasoning written by ${esc(model.by || 'a model')} from the computed data below; the signs and scores are calculated, not written.</div>` : ''}
+    ${trendSvg(sc.lean_history || [])}`;
+  const top = (sc.scenarios || [])[0] || {};
+  document.getElementById('scen-grid').innerHTML = (sc.scenarios || []).map(s => {
+    const m = (model.scenarios || {})[s.id] || {};
+    const u = new Set();
+    return `<article class="scen${s.id === top.id ? ' top' : ''}${state.openScen === s.id ? ' open' : ''}" data-scen="${esc(s.id)}">
+      <span class="outcome ${esc(s.outcome)}">${esc(OUTCOME_WORDS[s.outcome] || s.outcome)}</span>
+      <h3>${esc(s.title)}</h3><div class="tg">${esc(s.tagline)}</div>
+      <div class="meter">${Array.from({length: s.known}, (_, i) => `<i class="${i < s.met ? 'on' : ''}"></i>`).join('')}
+        <span>${s.met} of ${s.known} signs showing</span></div>
+      <p style="margin:0;font-size:13px">${gloss(esc(s.story), u)}</p>
+      <div class="scen-detail">
+        ${m.from_here ? `<p><b>From here:</b> ${gloss(esc(m.from_here), u)}</p>` : ''}
+        ${m.tipping_point ? `<p><b>What would tip it:</b> ${gloss(esc(m.tipping_point), u)}</p>` : ''}
+        <p><b>The chain of cause and effect</b></p>
+        <ol class="chain">${(s.chain || []).map(c => `<li>${gloss(esc(c), u)}</li>`).join('')}</ol>
+        <p><b>Who tends to gain and lose</b> <span class="sub">(hover for how)</span></p>${indChips(s.industries)}
+        <p><b>Signs to watch</b></p>
+        <ul class="posts">${(s.signposts || []).map(p => `<li><span class="${p.met ? 'ok' : 'no'}">${
+          p.met ? '✓' : p.met === false ? '✗' : '?'}</span><span>${gloss(esc(p.text), u)}</span>
+          <span class="cur">${p.shown ? 'now ' + esc(p.shown) : 'no data'}</span></li>`).join('')}</ul>
+        <p class="sub">${esc(s.history || '')}</p>
+      </div></article>`;
+  }).join('');
+
+  const flow = (c, extra) => {
+    const u = new Set();
+    return `<article class="flow"><h3>${esc(c.title || c.event)}</h3>
+      ${(c.why_now || []).length ? `<div class="now">Switched on because: ${c.why_now.map(esc).join(' ')}</div>` : ''}
+      <ul class="steps">
+        <li><span class="lbl">First</span>${gloss(esc(c.first), u)}</li>
+        <li><span class="lbl">Then</span>${gloss(esc(c.second), u)}</li>
+        <li><span class="lbl">In the long run</span>${gloss(esc(c.long_run), u)}</li></ul>
+      ${indChips(c.industries)}
+      ${extra || ''}
+      ${c.breaks_if ? `<div class="check"><b>What would break this chain:</b> ${gloss(esc(c.breaks_if), u)}</div>` : ''}
+    </article>`;
+  };
+  const active = sc.active || [];
+  document.getElementById('active-chains').innerHTML = active.length ? active.map(c => flow(c)).join('')
+    : '<div class="status">Nothing in today\'s data switches on a chain.</div>';
+  const chains = model.chains || [];
+  document.getElementById('model-chains').innerHTML = chains.length ? `
+    <h3 class="small-head" style="margin-top:16px">Today's biggest stories, followed through</h3>
+    <div class="flows">${chains.map(c => flow(c, `<div class="rw"><div class="r"><b>If it goes right</b>${esc(c.goes_right)}</div>
+      <div class="w"><b>If it goes wrong</b>${esc(c.goes_wrong)}</div></div>
+      ${c.check ? `<div class="check"><b>Prediction to check:</b> ${esc(c.check.claim)} (${esc(metricLabel(c.check.metric))}, ${esc(c.check.direction)}, within ${c.check.days} days)</div>` : ''}`)).join('')}</div>` : '';
+  const lib = sc.library || [];
+  document.getElementById('lib-n').textContent = lib.length + ' chains';
+  document.getElementById('chain-library').innerHTML = lib.map(c => flow(c)).join('');
+  renderHypotheses(sc);
+}
+
+function metricLabel(id) {
+  const m = state.market && (state.market.metrics || []).find(x => x.id === id);
+  return m ? m.label : id;
+}
+
+// A small line per scenario: the share of its signs showing, day by day.
+function trendSvg(history) {
+  if (history.length < 2) return '<div class="sub" style="margin-top:6px">A trend line appears here once a few days of readings have built up.</div>';
+  const ids = Object.keys(history[history.length - 1].shares);
+  const W = 640, H = 70, n = history.length;
+  const colors = { soft_landing: 'var(--up)', running_hot: 'var(--warn)', stagflation: 'var(--down)', downturn: 'var(--neutral)' };
+  const names = Object.fromEntries((state.scen.scenarios || []).map(s => [s.id, s.title]));
+  const lines = ids.map(id => {
+    const pts = history.map((h, i) => `${(i / (n - 1) * W).toFixed(1)},${(H - (h.shares[id] || 0) * (H - 6) - 3).toFixed(1)}`).join(' ');
+    return `<polyline fill="none" stroke="${colors[id] || 'var(--spark)'}" stroke-width="2" points="${pts}"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:70px;margin-top:8px" preserveAspectRatio="none" role="img" aria-label="Scenario fit over time">${lines}</svg>
+    <div class="split-key">${ids.map(id => `<span><span class="dot" style="background:${colors[id]}"></span>${esc(names[id] || id)}</span>`).join('')}
+      <span>${esc(fmtDay(history[0].on))} → ${esc(fmtDay(history[n - 1].on))}</span></div>`;
+}
+
+const STATUS_WORDS = { open: 'Open', right: 'Came true', wrong: 'Did not', unscored: 'No data' };
+
+function renderHypotheses(sc) {
+  const hyps = sc.hypotheses || [];
+  const box = document.getElementById('hyp-card');
+  if (!hyps.length) { box.innerHTML = '<div class="status">No predictions yet.</div>'; return; }
+  const card = sc.scorecard || {};
+  const fmt = v => v == null ? '—' : Math.abs(v) >= 1000 ? Math.round(v).toLocaleString() : (+v).toFixed(2);
+  box.innerHTML = `<p style="margin:0 0 8px">${card.scored
+      ? `<b>${card.right} of ${card.scored}</b> scored predictions came true.` : 'None has come due yet - the first are scored on ' + esc(fmtDay(hyps.map(h => h.due_on).sort()[0])) + '.'}
+      ${card.open} still open.</p>
+    <table class="hyp"><thead><tr><th>Prediction</th><th class="opt">Made</th><th>Due</th>
+      <th class="opt">Then → now</th><th>Status</th></tr></thead><tbody>
+    ${hyps.slice(0, 30).map(h => {
+      const status = h.status === 'open' && h.so_far
+        ? `<span class="st ${h.so_far === 'on track' ? 'track' : ''}">${esc(h.so_far)}</span>`
+        : `<span class="st ${esc(h.status)}">${esc(STATUS_WORDS[h.status] || h.status)}</span>`;
+      return `<tr><td>${esc(h.claim)}<div class="sub">${esc(h.label)} ${h.direction === 'up' ? '▲' : '▼'} · ${h.source === 'model' ? 'from a news chain' : 'from a computed chain'}${h.context ? ': ' + esc(h.context) : ''}</div></td>
+        <td class="opt">${esc(fmtDay(h.made_on))}</td><td>${esc(fmtDay(h.due_on))}</td>
+        <td class="opt">${fmt(h.baseline)} → ${fmt(h.latest)}</td><td>${status}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+document.addEventListener('click', e => {
+  const card = e.target.closest('.scen');
+  if (!card || e.target.closest('.term') || e.target.closest('a')) return;
+  state.openScen = state.openScen === card.dataset.scen ? '' : card.dataset.scen;
+  document.querySelectorAll('.scen').forEach(el =>
+    el.classList.toggle('open', el.dataset.scen === state.openScen));
+});
 
 // -- watchlist -------------------------------------------------------------
 // Two tiers, because the page is static. A ticker typed here is kept in this
@@ -1539,6 +2060,102 @@ const LESSONS = [
     </ul>
     <p>When you're comfortable, switch to <b>Advanced</b> at the top to see the underlying
     numbers.</p>`],
+  ['What a company is worth: price vs. earning power', 7, `
+    <p>Buying a stock is buying a slice of a company, so think like someone buying a shop:
+    compare <b>what it costs</b> with <b>what it earns</b>. McDonald's, step by step
+    (late-September figures; the <a href="#stocks">Compare</a> tab has today's).</p>
+    <p><b>1. The price of the whole company.</b> Market cap = share price x shares. $231 x 716
+    million shares = about <b>$165 billion</b>. The share price alone tells you nothing - cut a
+    pizza into 16 slices instead of 8 and each slice costs half as much, but the pizza doesn't.
+    If the company has debt, a buyer takes that on too: enterprise value (EV) = market cap +
+    debt - cash.</p>
+    <p><b>2. What it earns.</b> Three numbers: <b>revenue</b> (what customers paid),
+    <b>net income</b> (what's left after every cost and tax), and <b>free cash flow</b>
+    (FCF: cash from the business minus cash spent on stores and equipment). Divide by the
+    number of shares for "per share" figures - McDonald's earned <b>$12.36 per share</b> (EPS).</p>
+    <p><b>3. Price divided by earning power.</b> P/E = 231 / 12.36 = <b>about 19</b>: at today's
+    profit, the price equals 19 years of earnings. Flip it and you get the <b>earnings yield</b>:
+    12.36 / 231 = 5.4% - like an interest rate on the price you pay. Swap the bottom number for
+    other versions: <b>P/S</b> (price / sales) for companies with no profit yet, <b>P/FCF</b>
+    (price / free cash flow), which is harder to dress up than profit.</p>
+    <p><b>4. Valuing the future (DCF).</b> Multiples only look at today. For a growing company you
+    forecast future cash and convert it to today's money, because <b>$100 next year is worth less
+    than $100 now</b> - money you have now can be invested. At a 9% discount rate, $100 next year
+    is worth 100 / 1.09 = $92 today; in two years, 100 / 1.09² = $84. The rate used is the
+    <b>WACC</b>, the return shareholders and lenders require (e.g. 80% shareholders wanting 10%,
+    20% lenders at 5% after a 20% tax saving: 0.8 x 10% + 0.2 x 5% x 0.8 = 8.8%). Add ten years of
+    discounted cash, plus a <b>terminal value</b> for everything after (next year's cash /
+    (WACC - long-run growth)), subtract debt, add cash, divide by shares: that is the
+    <b>intrinsic value</b> per share. Every stock card's "Value &amp; quality" panel has a DCF you
+    can change - try moving growth by 2 points and see how far the answer swings.</p>
+    <p><b>The most honest use of a DCF is backwards:</b> ask what growth today's price
+    <i>assumes</i>. Each card shows it ("to justify today's price, free cash flow would need to
+    grow about X% a year for ten years"). Then ask whether that sounds plausible.</p>
+    <p><b>Which numbers matter most</b></p>
+    <ul>
+      <li><b>Free cash flow and FCF yield</b> - real cash, the most reliable.</li>
+      <li><b>Revenue growth, always next to the multiple.</b> In late September Nvidia traded at a
+      P/E of about 29 with revenue up ~83%; AMD at about 161 with revenue up ~40%. On those two
+      numbers alone, the second asks far more of the future.</li>
+      <li><b>Margins</b> - the same sales are worth more if more is kept.</li>
+      <li><b>Debt</b> - for indebted companies compare on EV, not market cap.</li>
+    </ul>
+    <p>Two things to remember: <b>a high multiple doesn't mean "overpriced", it means "big
+    expectations"</b>; and never judge on one number - combine several.</p>`],
+  ['Is it a good business? Quality, growth and safety', 6, `
+    <p>The last lesson measured price. These measure the <b>business</b> - the things that can
+    justify a high price, or warn that a low one is low for a reason.</p>
+    <p><b>How efficiently it earns (margins).</b> <b>Gross margin</b> = (sales - direct costs) /
+    sales: Nvidia keeps ~75%, Starbucks ~22%, because copying a chip design costs little while
+    coffee needs beans, milk and staff. <b>Operating margin</b> also subtracts research,
+    marketing and overhead: Cloudflare has a ~75% gross margin but a <i>negative</i> operating
+    margin - the product makes money, but spending on growth exceeds it. <b>Net margin</b> is
+    what's left after everything: Meta keeps ~$30 of every $100, Tesla ~$4.</p>
+    <p><b>How well it uses money.</b> <b>ROE</b> = profit / shareholders' money (Meta ~33%,
+    Tesla ~5%) - but it breaks for companies like McDonald's, whose buybacks pushed
+    shareholders' equity below zero. <b>ROIC</b> counts debt too: profit / all the money invested.
+    The key test: <b>ROIC above the WACC means growth creates value; below it, growth destroys
+    value.</b></p>
+    <p><b>Growth.</b> Revenue growth (late Sept: Micron ~256%, Nvidia ~83%, AMD ~40%, Meta ~28%,
+    Tesla ~8%, Starbucks ~4.5%). The <b>PEG ratio</b> = P/E / profit growth combines them: Nvidia
+    ~0.36, Meta ~1.1, Tesla ~8.8 - one number showing whether growth explains the multiple.</p>
+    <p><b>Safety.</b> <b>Debt/equity</b> (Micron 0.04, Meta 0.43 - both light). <b>Current
+    ratio</b>: cash coming within a year vs bills due within a year (Micron 3.3; Starbucks 0.76,
+    fine for a business paid in cash every day). <b>EV/EBITDA</b> compares companies regardless
+    of debt and tax (Micron ~10, Meta ~17, Tesla ~127). <b>Beta</b>: how much it swings when the
+    market moves 1% (Tesla ~1.9, Meta ~1.25).</p>
+    <p><b>Your first three checks</b>, shown at the top of every value card:</p>
+    <ul>
+      <li><b>Revenue growth</b> - is it growing?</li>
+      <li><b>Operating margin</b> - is it profitable while growing?</li>
+      <li><b>ROIC</b> - does the money put in earn enough?</li>
+    </ul>
+    <p>All three strong: a higher multiple is easier to justify. All three weak with a high
+    multiple: the price rests on expectations alone.</p>`],
+  ['Thinking ahead: scenarios and knock-on effects', 5, `
+    <p>Investing is a bet on a future nobody knows. Professionals don't try to predict one
+    outcome; they lay out a few plausible ones, the reasoning behind each, and the signs that
+    would show which is arriving. That's what <a href="#future">What could happen next</a> does.</p>
+    <p><b>Four scenarios.</b> The economy is always heading toward one corner of a simple map:
+    growth holds or slows, inflation cools or stays hot. <b>Soft landing</b> (goes right),
+    <b>running hot</b>, <b>stagflation</b> and <b>downturn</b> (goes wrong) each have a long track
+    record of which industries gain and lose. Each has <b>signposts</b> - thresholds on numbers
+    this page tracks - so "which way are we leaning" is counted, not guessed.</p>
+    <p><b>Second-order effects.</b> The first effect of news is obvious and priced within
+    minutes. The interesting part is what it causes next. Tariffs on imports: prices of imported
+    goods rise (first); retailers are squeezed between costs and customers, automakers pay more
+    for parts, farmers lose exports to retaliation (second); over years, factories move to Mexico
+    or Vietnam and goods stay structurally pricier (long run). For each chain ask: <i>who else does
+    this reach, how, and what would break the chain?</i></p>
+    <p><b>Why stocks fall.</b> A fall has three layers: the whole market, the company's industry,
+    and the company itself. If a software stock fell 20% while software fell 17%, it's a software
+    story. The "Why it fell" panel splits the fall, finds the worst day, and shows the news from
+    that day. A fall for a reason the market already knows is <i>not</i> a sign the stock is
+    cheap.</p>
+    <p><b>Keep score.</b> Every chain leaves a prediction tied to a number ("producer prices higher
+    in three months"). When the date comes it's scored. Over months, that track record is the
+    honest answer to "does this reasoning work?" - and the habit of writing predictions down
+    is the best defence against remembering only the ones that came true.</p>`],
 ];
 
 function renderLearn() {
@@ -1548,7 +2165,7 @@ function renderLearn() {
       <div class="lesson-body">${body}</div></details>`).join('');
   document.getElementById('glossary').innerHTML = Object.keys(GLOSSARY)
     .sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}))
-    .map(term => `<div><b>${esc(term)}</b><span>${esc(GLOSSARY[term])}</span></div>`).join('');
+    .map(term => `<div><b>${esc(term)}${jaOf(term)}</b><span>${esc(GLOSSARY[term])}</span></div>`).join('');
 }
 
 // -- mode & load -----------------------------------------------------------
@@ -1560,6 +2177,7 @@ function applyMode() {
   pop.style.display = 'none';
   renderBrief();
   renderRegime();
+  renderFuture();
   renderStocks();
   renderCalendar();
   renderSnapshot();
@@ -1579,7 +2197,7 @@ renderLearn();
 applyPrefs();
 applyMode();
 
-// Three payloads, loaded independently: one failing must never take the others
+// Four payloads, loaded independently: one failing must never take the others
 // down with it.
 const load = path => fetch(path, { cache: 'no-cache' })
   .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
@@ -1602,6 +2220,15 @@ load('data/stocks.json').then(stocks => {
 }).catch(() => {
   document.getElementById('stock-grid').innerHTML =
     '<div class="status">Stock lists are not available in this update yet.</div>';
+});
+
+load('data/scenarios.json').then(scen => {
+  state.scen = scen;
+  renderFuture();
+  renderStocks();  // ripples appear in the "why it fell" boxes
+}).catch(() => {
+  document.getElementById('lean-card').innerHTML =
+    '<div class="status">Scenarios are not available in this update yet.</div>';
 });
 
 load('data/items.json').then(data => {

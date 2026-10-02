@@ -206,8 +206,9 @@ jobs:
           fi
           python -m finance.cli --db /tmp/finance.db rank --llm "${args[@]}"
 
-      # The three stock lists (trending / popular but falling / popular with
-      # tech people). After ranking on purpose: each stock is explained with its
+      # The stock lists (trending / popular but falling / popular with tech
+      # people / your watchlist / the comparison table), with TradingView's
+      # fundamentals and an evidence-based "why it fell" for each faller. After ranking on purpose: each stock is explained with its
       # most market-relevant recent headline, and "most relevant" is the impact
       # score the rank step just computed. Every source here fails soft, so a
       # blocked API degrades a list rather than failing the run.
@@ -231,6 +232,26 @@ jobs:
             python -m finance.cli --db /tmp/finance.db brief
           fi
 
+      # Scenarios, knock-on chains and the prediction log. The computed layer
+      # (which scenario the data fits, which chains are switched on, scoring
+      # predictions that came due) always runs; one model call adds today's
+      # reasoning on top and is skipped, not fatal, when every provider fails.
+      # After the stock lists so it can explain who else each fall reaches.
+      - name: Scenarios and predictions
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3.5:4b' }}
+          PROVIDER: ${{ steps.ranker.outputs.provider }}
+          FALLBACK: ${{ vars.RANKER_FALLBACK || 'groq,anthropic,ollama' }}
+        run: |
+          if [ -n "$PROVIDER" ]; then
+            python -m finance.cli --db /tmp/finance.db scenarios --llm --provider "$PROVIDER" --fallback "$FALLBACK"
+          else
+            python -m finance.cli --db /tmp/finance.db scenarios
+          fi
+
       # Keeps the cached database from growing without bound. News only:
       # observations and calendar events are never pruned, because a z-score
       # needs years of history and the whole series set is a few hundred KB.
@@ -246,4 +267,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Daily market refresh'
-          file_pattern: docs/data/items.json docs/data/market.json docs/data/stocks.json docs/data/listing.json
+          file_pattern: docs/data/items.json docs/data/market.json docs/data/stocks.json docs/data/listing.json docs/data/scenarios.json

@@ -83,6 +83,16 @@ LIST_NOTES = {
                    "it will bounce back; plenty of stocks never return to their "
                    "old high.",
     },
+    "compare": {
+        "title": "Compare",
+        "what": "What you pay for each company next to what it earns - the same table for "
+                "a chip giant, a burger chain, a cloud company that loses money and a car "
+                "maker priced on its future, plus your watchlist. Tap a row for its full "
+                "value card.",
+        "careful": "A high multiple is not 'expensive' and a low one is not 'cheap'. A high "
+                   "P/E means the price expects a lot of growth; always read it next to the "
+                   "growth rate. No single number decides anything.",
+    },
     "tech": {
         "title": "Popular with tech people",
         "what": "Companies software engineers are writing about on Hacker News "
@@ -670,27 +680,101 @@ def watchlist_rows(entries: list, screener: dict, histories: dict, stocktwits: l
     return out
 
 
+# The companies in the comparison table, always - a fixed reference set
+# spanning the shapes a business can take (a chip giant, a burger chain, a
+# loss-making cloud company, a car maker priced on its future) so any stock
+# on the lists can be read against them. The watchlist is added to it.
+REFERENCE = ("NVDA", "AMD", "META", "GOOGL", "MU", "MCD", "SBUX", "NET", "TSLA")
+COMPARE_FIELDS = ("price", "eps", "pe", "ps", "p_fcf", "fcf_yield", "revenue_growth",
+                  "gross_margin", "operating_margin", "roic", "debt_to_equity", "beta")
+
+
+def compare_row(symbol: str, tv_row: dict) -> dict:
+    """One row of the comparison table: what you pay, and what you get."""
+    cap, fcf = tv_row.get("market_cap"), tv_row.get("fcf")
+    row = {"symbol": symbol, "name": tv_row.get("name") or symbol,
+           "industry": tv_row.get("industry") or ""}
+    for field in COMPARE_FIELDS:
+        row[field] = tv_row.get(field)
+    row["fcf_yield"] = round(fcf / cap * 100, 2) if fcf is not None and cap else None
+    if row["p_fcf"] is None and fcf and fcf > 0 and cap:
+        row["p_fcf"] = round(cap / fcf, 1)
+    if row["ps"] is None and tv_row.get("revenue") and cap:
+        row["ps"] = round(cap / tv_row["revenue"], 1)
+    return row
+
+
 def build(screener: dict, histories: dict, stocktwits: list, reddit: list,
           hn: dict, universe: dict, items: list = None, today: date = None,
-          watchlist: list = None) -> dict:
-    """All three lists plus the notes that explain them - the stocks.json body.
+          watchlist: list = None, tv: dict = None, peers: dict = None,
+          medians: dict = None, headlines: dict = None, risk_free: float = 4.2) -> dict:
+    """All the lists plus the notes that explain them - the stocks.json body.
 
     `items` is recent news (dicts with title/url/source/impact), used only to
-    explain rows; the lists themselves never depend on it.
+    explain rows; the lists themselves never depend on it. `tv`, `peers`,
+    `medians` and `headlines` are the TradingView layer: fundamentals per
+    symbol, market/industry moves, industry medians, and per-symbol news.
+    Without them the lists still build - just without "why it fell" and the
+    value card.
     """
     items = items or []
     reddit = clean_reddit(reddit)
-    return {
-        "notes": LIST_NOTES,
-        "lists": {
-            "watchlist": attach_news(watchlist_rows(
-                watchlist or [], screener, histories, stocktwits, reddit, hn,
-                universe, today=today), items),
-            "trending": attach_news(trending(screener, histories, stocktwits, reddit,
-                                             universe, today=today), items),
-            "dipping": attach_news(dipping(screener, histories, stocktwits, reddit,
-                                           hn, universe, today=today), items),
-            "tech": attach_news(tech_favourites(screener, histories, hn, reddit,
-                                                universe, today=today), items),
-        },
+    lists = {
+        "watchlist": attach_news(watchlist_rows(
+            watchlist or [], screener, histories, stocktwits, reddit, hn,
+            universe, today=today), items),
+        "trending": attach_news(trending(screener, histories, stocktwits, reddit,
+                                         universe, today=today), items),
+        "dipping": attach_news(dipping(screener, histories, stocktwits, reddit,
+                                       hn, universe, today=today), items),
+        "tech": attach_news(tech_favourites(screener, histories, hn, reddit,
+                                            universe, today=today), items),
     }
+    profiles = {}
+    if tv:
+        from . import drops as drop_mod, valuation
+        for rows in lists.values():
+            for row in rows:
+                symbol = row["symbol"]
+                tv_row = tv.get(symbol)
+                if not tv_row:
+                    continue
+                if symbol not in profiles:
+                    profiles[symbol] = valuation.profile(
+                        tv_row, (medians or {}).get(tv_row.get("industry")), risk_free)
+                row["earnings_next"] = tv_row.get("earnings_next") or ""
+                history = histories.get(symbol) or []
+                if drop_mod.needs_explaining(row, history):
+                    row["fell"] = drop_mod.explain(
+                        symbol, row, history, tv_row, peers or {},
+                        (headlines or {}).get(symbol) or [], today=today)
+    compare = []
+    if tv:
+        from . import valuation
+        mine = [e["symbol"] for e in watchlist or []]
+        for symbol in list(REFERENCE) + [m for m in mine if m not in REFERENCE]:
+            tv_row = tv.get(symbol)
+            if not tv_row:
+                continue
+            compare.append(dict(compare_row(symbol, tv_row), mine=symbol in mine))
+            if symbol not in profiles:
+                profiles[symbol] = valuation.profile(
+                    tv_row, (medians or {}).get(tv_row.get("industry")), risk_free)
+    return {"notes": LIST_NOTES, "lists": lists, "compare": compare,
+            "profiles": {k: v for k, v in profiles.items() if v}}
+
+
+def explain_targets(screener: dict, histories: dict, symbols, limit: int = 40,
+                    today: date = None) -> list:
+    """The symbols whose fall is worth explaining, worst first, capped - so the
+    per-symbol headline requests stay a few dozen a day."""
+    from .drops import needs_explaining
+    out = []
+    for symbol in symbols:
+        if symbol not in screener:
+            continue
+        history = histories.get(symbol) or []
+        facts = stock_facts(screener[symbol], history, today)
+        if needs_explaining(facts, history):
+            out.append((facts.get("chg_1m") or 0, symbol))
+    return [s for _, s in sorted(out)[:limit]]

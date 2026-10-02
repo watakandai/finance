@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -27,9 +28,14 @@ from .fetchers.reddit import RedditFetcher
 from .fetchers.rss import RSSFetcher
 from .fetchers import nasdaq as nasdaq_api
 from .fetchers import social
+from .fetchers import tradingview as tv_api
 from .fetchers.nasdaq import NasdaqHistoryFetcher
 from .impact import impact_scores
+from . import analysis as analysis_mod
+from . import drops as drop_mod
+from . import scenarios as scenario_mod
 from . import stocks as stock_lists
+from . import valuation
 from . import watchlist as watch_file
 
 DEFAULT_DB = Path.home() / ".finance" / "finance.db"
@@ -124,7 +130,8 @@ def main() -> None:
     stocks_parser.add_argument("--hn-days", type=int, default=30,
                                help="how far back to count Hacker News mentions")
     stocks_parser.add_argument("--skip", default="",
-                               help="comma-separated: stocktwits, reddit, hn, history")
+                               help="comma-separated: screener, stocktwits, reddit, "
+                                    "ipos, hn, history, tradingview, headlines")
 
     watch = sub.add_parser("watch", help="add, remove or list watchlist tickers")
     watch.add_argument("action", choices=("add", "remove", "list"))
@@ -169,6 +176,14 @@ def main() -> None:
     brief_parser.add_argument("--model", default=None)
     brief_parser.add_argument("--profile", default=str(ranking.DEFAULT_PROFILE))
 
+    scen = sub.add_parser(
+        "scenarios", help="evaluate scenarios, knock-on chains and tracked predictions")
+    scen.add_argument("--llm", action="store_true")
+    scen.add_argument("--provider", choices=sorted(ranking.PROVIDERS), default="gemini")
+    scen.add_argument("--fallback", default="")
+    scen.add_argument("--model", default=None)
+    scen.add_argument("--profile", default=str(ranking.DEFAULT_PROFILE))
+
     export = sub.add_parser("export", help="write the JSON the static page reads")
     export.add_argument("--out-dir", required=True)
     export.add_argument("--sort", choices=("score", "impact", "date"), default="score")
@@ -200,7 +215,7 @@ def main() -> None:
     init_db(args.db)
 
     {"news": _cmd_news, "data": _cmd_data, "stocks": _cmd_stocks, "watch": _cmd_watch,
-     "rank": _cmd_rank, "brief": _cmd_brief,
+     "rank": _cmd_rank, "brief": _cmd_brief, "scenarios": _cmd_scenarios,
      "export": _cmd_export, "list": _cmd_list, "dash": _cmd_dash,
      "calendar": _cmd_calendar, "prune": _cmd_prune}[args.cmd](args)
 
@@ -399,6 +414,34 @@ def _cmd_stocks(args) -> None:
             print(f"  history {symbol}: FAILED ({why})", file=sys.stderr)
     histories = {sym: series_values(args.db, f"stk:{sym}") for sym in wanted}
 
+    # TradingView: fundamentals for every list stock, and the whole market's
+    # one-month moves so a fall can be split into market / industry / company.
+    # The scan is ~3,000 rows; only the derived peer stats and the rows the
+    # lists use are stored.
+    scan = attempt("tradingview", tv_api.scan, None)
+    if scan is None:
+        tv_rows = previous.get("tv") or {}
+        peers = previous.get("peers") or {}
+        medians = previous.get("medians") or {}
+    else:
+        tv_rows = scan
+        peers = drop_mod.peer_stats(scan)
+        medians = valuation.industry_medians(scan)
+        print(f"tradingview: {len(scan)} stocks; market {peers['market_1m']:+.1f}% "
+              f"this month; {len(medians)} industries with typical values")
+    targets = stock_lists.explain_targets(screener, histories, wanted)
+    # Last run's headlines stand in for a symbol this run could not fetch.
+    headlines = dict(previous.get("headlines") or {})
+    if targets and "headlines" not in skip:
+        mapping = {sym: tv_api.tv_symbol(sym, tv_rows.get(sym)) for sym in targets}
+        fetched, failures = tv_api.headlines_many(mapping)
+        headlines.update(fetched)
+        print(f"headlines: {sum(len(v) for v in fetched.values())} for "
+              f"{len(fetched)}/{len(targets)} falling stocks")
+        for symbol, why in failures[:5]:
+            print(f"  headlines {symbol}: FAILED ({why})", file=sys.stderr)
+    risk_free = (series_values(args.db, "ust_10y") or [(None, 4.2)])[-1][1]
+
     # The whole listing, compacted, for the page's "add a ticker" box: it lets a
     # symbol show today's price the moment it is typed, before the daily job
     # has ever seen it. Kept only when this run fetched a fresh screener.
@@ -410,9 +453,18 @@ def _cmd_stocks(args) -> None:
 
     # Only what the lists can use is kept: the full screener is ~7,000 rows and
     # would be carried in the cached database forever for nothing.
-    keep = set(wanted) | set(universe) | {e["symbol"] for e in watching}
+    keep = (set(wanted) | set(universe) | {e["symbol"] for e in watching}
+            | set(stock_lists.REFERENCE))
     set_state(args.db, "stocks_inputs", {
         "screener": {k: v for k, v in screener.items() if k in keep},
+        "tv": {k: v for k, v in tv_rows.items() if k in keep},
+        # Only the explanation window, and only for stocks still worth
+        # explaining - a month of news for forty symbols, not forever.
+        "headlines": {k: [h for h in v if h["on"] >= (date.today() - timedelta(
+            days=drop_mod.WINDOW_DAYS)).isoformat()][:25]
+            for k, v in headlines.items() if k in targets},
+        "peers": peers,
+        "medians": medians,
         "stocktwits": stocktwits,
         "reddit": reddit,
         "hn": hn,
@@ -422,10 +474,18 @@ def _cmd_stocks(args) -> None:
     since = (datetime.now(timezone.utc) - timedelta(days=4)).isoformat()
     recent = [row_to_dict(r) for r in query_items(args.db, order_by="impact", since=since)]
     built = stock_lists.build(screener, histories, stocktwits, reddit, hn, universe,
-                              items=recent, watchlist=watching)
+                              items=recent, watchlist=watching, tv=tv_rows,
+                              peers=peers, medians=medians, headlines=headlines,
+                              risk_free=risk_free)
     set_state(args.db, "stocks", built)
     for key, rows in built["lists"].items():
         print(f"list {key}: {', '.join(r['symbol'] for r in rows) or '(empty)'}")
+    explained = {r["symbol"]: r["fell"] for rows in built["lists"].values()
+                 for r in rows if r.get("fell")}
+    shown = ", ".join(f"{k} {v['kind']}/{v['confidence']}"
+                      for k, v in list(explained.items())[:8])
+    print(f"explained falls: {len(explained)} ({shown}); "
+          f"value cards: {len(built['profiles'])}")
 
 
 # -------------------------------------------------------------------- rank
@@ -587,6 +647,102 @@ def _cmd_brief(args) -> None:
     set_state(args.db, "brief", written)
     print(f"brief: written by {written['by']} ({len(written['points'])} points)")
     print(f"  {written['lede']}")
+
+
+# --------------------------------------------------------------- scenarios
+
+def _provider_chain(args) -> list:
+    fallbacks = [p.strip() for p in args.fallback.split(",")
+                 if p.strip() and p.strip() != args.provider]
+    return [args.provider, *fallbacks]
+
+
+def _cmd_scenarios(args) -> None:
+    """Scenarios, knock-on chains and the prediction log; the model optional.
+
+    The computed layer always runs and always ships. The model adds today-
+    specific reasoning on top; when every provider fails, yesterday's model
+    text is kept only if it is from the last three days, because a "how it
+    unfolds from here" written a week ago is about a different "here".
+    """
+    summaries, series = _load_metrics(args.db)
+    reading = regime_mod.assess(summaries, series, _ratios(args.db))
+    since = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    items = [row_to_dict(r) for r in query_items(args.db, order_by="impact", since=since)]
+    state = get_state(args.db, "scenarios_state") or {}
+    today = date.today()
+    built = scenario_mod.build(summaries, reading, items, state, today)
+
+    stocks_state = get_state(args.db, "stocks") or {}
+    falls = {}
+    for rows in (stocks_state.get("lists") or {}).values():
+        for row in rows:
+            if row.get("fell") and row["symbol"] not in falls:
+                falls[row["symbol"]] = {**row["fell"], "name": row.get("name", ""),
+                                        "industry": row.get("industry", "")}
+
+    previous = get_state(args.db, "scenarios") or {}
+    model = previous.get("model") or {}
+    if model.get("on", "") < (today - timedelta(days=3)).isoformat():
+        model = {}
+    if args.llm:
+        metric_ids = set(summaries)
+        prompt_args = dict(
+            regime_block=briefing._regime_block(reading),
+            metrics_block=briefing._metrics_block(summaries, limit=24),
+            news_block=briefing._news_block(items, limit=18),
+            evaluated=built["scenarios"], active=built["active"], drops=falls,
+            metric_ids=metric_ids)
+        for n, name in enumerate(_provider_chain(args)):
+            env_var, default_model, call = ranking.PROVIDERS[name]
+            key = os.environ.get(env_var, "").strip()
+            if not key:
+                print(f"scenarios: {name} skipped ({env_var} not set)")
+                continue
+            used = (args.model if n == 0 else None) or default_model
+            try:
+                import time as _time
+                profile = ranking.load_profile(args.profile)
+                prompt = analysis_mod.build_prompt(profile, **prompt_args)
+                reply = ranking._call_with_retry(
+                    call, prompt, used, key, ranking.PROVIDER_TIMEOUT.get(name, 120),
+                    _time.sleep)
+                parsed = analysis_mod.parse_analysis(reply, metric_ids, set(falls))
+                model = {**parsed, "by": f"{name}:{used}", "on": today.isoformat()}
+                print(f"scenarios: written by {name}:{used} ({len(parsed['chains'])} "
+                      f"chains, {len(parsed['ripples'])} ripples)")
+                break
+            except Exception as exc:
+                print(f"scenarios: {name} failed ({type(exc).__name__}: {exc})",
+                      file=sys.stderr)
+        else:
+            print("scenarios: every model failed - shipping the computed layer",
+                  file=sys.stderr)
+        # Each model chain's check becomes a tracked prediction - once.
+        if model.get("on") == today.isoformat():
+            new = []
+            for chain in model.get("chains") or []:
+                check = chain.get("check")
+                if not check:
+                    continue
+                h = scenario_mod.make_hypothesis(
+                    check["claim"] or chain["event"], check["metric"], "value",
+                    check["direction"], check["days"], summaries, "model", today,
+                    origin=re.sub(r"\W+", "-", chain["event"].lower())[:40])
+                if h:
+                    h["context"] = chain["event"]
+                    new.append(h)
+            built["hypotheses"] = scenario_mod.merge(built["hypotheses"], new)
+            built["scorecard"] = scenario_mod.scorecard(built["hypotheses"])
+
+    set_state(args.db, "scenarios_state", {"hypotheses": built["hypotheses"],
+                                           "lean": built["lean_history"]})
+    set_state(args.db, "scenarios", {**built, "model": model, "falls": falls})
+    top = built["scenarios"][0]
+    print(f"scenarios: leaning {top['id']} ({top['met']}/{top['known']}); active chains: "
+          f"{', '.join(a['id'] for a in built['active']) or 'none'}; predictions "
+          f"{built['scorecard']['open']} open, {built['scorecard']['right']}/"
+          f"{built['scorecard']['scored']} right so far")
 
 
 # ------------------------------------------------------------------ metrics
@@ -802,12 +958,21 @@ def _cmd_export(args) -> None:
         "notes": built.get("notes") or stock_lists.LIST_NOTES,
         "lists": built.get("lists") or {"watchlist": [], "trending": [],
                                         "dipping": [], "tech": []},
+        "compare": built.get("compare") or [],
         # So the page knows which symbols are tracked even before a daily run
         # has built their cards.
         "watchlist": [t["symbol"] for t in watch_file.load()["tickers"]],
+        # One value card per symbol, shared by every list the symbol is in.
+        "profiles": built.get("profiles") or {},
     }
     (out_dir / "stocks.json").write_text(
         json.dumps(stocks_payload, separators=(",", ":"), default=str) + "\n")
+    scen = get_state(args.db, "scenarios") or {}
+    if scen:
+        (out_dir / "scenarios.json").write_text(json.dumps(
+            {"generated_at": generated, **scen,
+             "disclaimer": regime_mod.DISCLAIMER},
+            separators=(",", ":"), default=str) + "\n")
     listing = get_state(args.db, "listing") or []
     (out_dir / "listing.json").write_text(json.dumps(
         {"generated_at": inputs.get("fetched_at", ""),

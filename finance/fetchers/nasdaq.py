@@ -101,7 +101,7 @@ _NAME_TAIL = (
     " series a", " series b", " series c", " adr",
 )
 _NAME_SUFFIX = (
-    ", inc.", " inc.", " inc", ", corp.", " corp.", " corporation", " corp",
+    " (the)", ", inc.", " inc.", " inc", ", corp.", " corp.", " corporation", " corp",
     " holdings", " holding", ", ltd.", " ltd.", " ltd", " plc", " n.v.",
     " s.a.", " co.", " company", " limited", " group", ",",
 )
