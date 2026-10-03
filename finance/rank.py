@@ -411,7 +411,8 @@ def call_groq(prompt: str, model: str, api_key: str, timeout: int) -> str:
     )
 
 
-def call_ollama(prompt: str, model: str, host: str, timeout: int) -> str:
+def call_ollama(prompt: str, model: str, host: str, timeout: int,
+                json_object: bool = False, num_ctx: int = 8192) -> str:
     """A model on a local (or self-hosted) Ollama server - no key, no quota.
 
     `host` comes from OLLAMA_HOST, which doubles as the "key": set means a
@@ -419,6 +420,10 @@ def call_ollama(prompt: str, model: str, host: str, timeout: int) -> str:
     too. The native /api/chat endpoint is used rather than Ollama's
     OpenAI-style one because only it can raise the context window, and
     Ollama's small default would silently cut a batch off mid-list.
+
+    `json_object` turns on Ollama's constrained JSON output, for prompts that
+    want one JSON object back: a 4B model writing a long nested object freehand
+    drops a comma or a quote often enough to lose the whole reply.
     """
     base = host.strip().rstrip("/")
     if "://" not in base:
@@ -433,7 +438,8 @@ def call_ollama(prompt: str, model: str, host: str, timeout: int) -> str:
             # Qwen 3.5 thinks by default; on a CPU that costs minutes a batch
             # and triage doesn't need it.
             "think": False,
-            "options": {"num_ctx": 8192},
+            "options": {"num_ctx": num_ctx},
+            **({"format": "json"} if json_object else {}),
         },
         timeout,
     )

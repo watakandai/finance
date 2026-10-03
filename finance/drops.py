@@ -34,6 +34,8 @@ WINDOW_DAYS = 31
 # A fall worth explaining: a month's move, or a single bad day inside it.
 EXPLAIN_MONTH = -8.0
 EXPLAIN_DAY = -7.0
+# A single day this bad, with a spin-off in the news, is the price adjusting.
+SPINOFF_DAY = -35.0
 # Share of the month's fall that one day must carry to call it "the" day.
 CONCENTRATED = 0.4
 MIN_PEERS = 5
@@ -54,7 +56,8 @@ CATALYSTS = (
      "so a sale alone says little; buying with their own money is rarer and usually "
      "read as confidence."),
     ("clinical", "Drug trial or regulator",
-     r"\b(?:trials?|phase (?:[1-3]|i{1,3})|fda|study|studies|data (?:from|show\w*)|bla|nda"
+     r"\b(?:(?:clinical|drug|pivotal|late-stage|phase \w+) trials?|trial (?:data|results?|readout)"
+     r"|phase (?:[1-3]|i{1,3})|fda|study|studies|data (?:from|show\w*)|bla|nda"
      r"|crl|complete response|approval|readout|clinical)\b",
      "For a drug company most of the value rests on a few products, so a single "
      "study result or regulator decision can halve - or double - the price in a day."),
@@ -309,7 +312,15 @@ def explain(symbol: str, facts: dict, history: list, tv_row: dict, peers: dict,
         cause_types.insert(0, "earnings")
 
     concentrated = bool(day and stock < 0 and day["chg"] <= CONCENTRATED * stock)
-    if (concentrated and (causes(near) or earnings_linked)) or (
+    # A one-day collapse with a spin-off in the news is almost always the
+    # price adjusting for the business handed to shareholders - Nasdaq's
+    # closes are not adjusted for it. Say so first; it is not a real loss.
+    if day and day["chg"] <= SPINOFF_DAY and any(h["tag"] == "spinoff" for h in tagged):
+        kind = "spinoff"
+        cause_types = ["spinoff"] + [t for t in cause_types if t != "spinoff"]
+    if kind == "spinoff":
+        confidence = "likely"
+    elif (concentrated and (causes(near) or earnings_linked)) or (
             kind != "company" and abs(parts["company"]) < 5):
         confidence = "clear"
     elif cause_types or kind != "company":
@@ -376,6 +387,12 @@ def summarize(symbol, name, parts, kind, group, day, concentrated, earnings_link
     group_move = parts["market"] + parts["industry_extra"]
     moved = f"fell {abs(total):.0f}%" if total < 0 else f"rose {total:.0f}%"
     out = []
+    if kind == "spinoff":
+        return (f"Most likely not a real loss: {name} split off part of its business, "
+                f"and the share price dropped {abs(day['chg']):.0f}% on "
+                f"{_fmt_day(day['on'])} by roughly the value handed to shareholders as "
+                "new shares. The chart shows a fall; holders now own two pieces. "
+                "Compare its moves from that date onward, not across it.")
     if total >= 0 and day:
         out.append(f"{name} is up {total:.0f}% over the month, but had a sharp one-day "
                    f"fall: {abs(day['chg']):.0f}% down on {_fmt_day(day['on'])}.")

@@ -68,3 +68,24 @@ def test_prompt_lists_scenarios_signposts_and_allowed_metrics():
         assert sid in prompt
     assert "core_cpi, ppi, ust_10y" in prompt
     assert "Never recommend buying" in prompt
+
+
+def test_small_model_slips_are_repaired():
+    sloppy = '{"outlook": "Leans soft landing.", "scenarios": {}, "chains": [], "ripples": {},}'
+    assert analysis.parse_analysis(sloppy, METRICS, set())["outlook"] == "Leans soft landing."
+
+
+def test_ollama_can_be_asked_for_one_json_object(monkeypatch):
+    from finance import rank
+    sent = {}
+
+    def fake_post(url, headers, payload, timeout):
+        sent.update(payload)
+        return {"message": {"content": "{}"}}
+
+    monkeypatch.setattr(rank, "_post_json", fake_post)
+    rank.call_ollama("p", "m", "localhost:11434", 5, json_object=True, num_ctx=16384)
+    assert sent["format"] == "json" and sent["options"]["num_ctx"] == 16384
+    sent.clear()
+    rank.call_ollama("p", "m", "localhost:11434", 5)
+    assert "format" not in sent    # the ranker's JSON arrays stay unconstrained

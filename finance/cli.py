@@ -689,8 +689,8 @@ def _cmd_scenarios(args) -> None:
         metric_ids = set(summaries)
         prompt_args = dict(
             regime_block=briefing._regime_block(reading),
-            metrics_block=briefing._metrics_block(summaries, limit=24),
-            news_block=briefing._news_block(items, limit=18),
+            metrics_block=briefing._metrics_block(summaries, limit=18),
+            news_block=briefing._news_block(items, limit=14),
             evaluated=built["scenarios"], active=built["active"], drops=falls,
             metric_ids=metric_ids)
         for n, name in enumerate(_provider_chain(args)):
@@ -700,6 +700,10 @@ def _cmd_scenarios(args) -> None:
                 print(f"scenarios: {name} skipped ({env_var} not set)")
                 continue
             used = (args.model if n == 0 else None) or default_model
+            if name == "ollama":
+                # One object back, and room for this prompt plus a long reply.
+                import functools
+                call = functools.partial(call, json_object=True, num_ctx=16384)
             try:
                 import time as _time
                 profile = ranking.load_profile(args.profile)

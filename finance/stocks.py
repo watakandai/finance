@@ -748,6 +748,9 @@ def build(screener: dict, histories: dict, stocktwits: list, reddit: list,
                     row["fell"] = drop_mod.explain(
                         symbol, row, history, tv_row, peers or {},
                         (headlines or {}).get(symbol) or [], today=today)
+        # A spin-off is a price adjustment, not a stock that is falling.
+        lists["dipping"] = [r for r in lists["dipping"]
+                            if (r.get("fell") or {}).get("kind") != "spinoff"]
     compare = []
     if tv:
         from . import valuation

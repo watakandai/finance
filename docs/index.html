@@ -1065,7 +1065,7 @@ function fellHtml(r) {
   // the parts that pushed DOWN are drawn - a market that rose is not part of
   // a fall.
   let bar = '';
-  if (f.kind !== 'day' && p.total < 0) {
+  if (f.kind !== 'day' && f.kind !== 'spinoff' && p.total < 0) {
     const segs = [['m', p.market, 'The whole market'],
                   ['ind', p.industry_extra, `${f.group}, beyond the market`],
                   ['co', p.company, 'This company alone']];

@@ -115,6 +115,8 @@ def _drops_block(drops: dict) -> str:
         return "(none)"
     lines = []
     for symbol, d in list(drops.items())[:MAX_RIPPLES]:
+        if d.get("kind") == "spinoff":
+            continue
         heads = "; ".join(e["title"] for e in (d.get("evidence") or [])[:2])
         lines.append(f"- {symbol} ({d.get('name', symbol)}, {d.get('industry', '')}): "
                      f"{d.get('summary', '')} Headlines: {heads}")
@@ -140,12 +142,23 @@ ADVICE_RE = re.compile(
     r"undervalued|overvalued|opportunity|bargain|you should (?:buy|sell|hold))\b", re.I)
 
 
+def _loads_lenient(text: str):
+    """json.loads, then once more after the two slips small models make most:
+    trailing commas and curly quotes around keys or values."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        fixed = re.sub(r",\s*([}\]])", r"\1", text)
+        fixed = fixed.replace("\u201c", '"').replace("\u201d", '"')
+        return json.loads(fixed)
+
+
 def parse_analysis(text: str, metric_ids: set, symbols: set) -> dict:
     """Validate the model's JSON. Anything malformed is dropped, not repaired."""
     match = re.search(r"\{.*\}", text or "", re.S)
     if not match:
         raise ValueError(f"no JSON object in model reply: {(text or '')[:200]!r}")
-    data = json.loads(match.group(0))
+    data = _loads_lenient(match.group(0))
     outlook = _clean(data.get("outlook"), 600)
     if not outlook:
         raise ValueError("model returned no outlook")

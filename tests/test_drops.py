@@ -117,3 +117,20 @@ def test_needs_explaining():
     assert drops.needs_explaining({"chg_1m": -12.0})
     assert not drops.needs_explaining({"chg_1m": -3.0}, daily([100, 99, 98]))
     assert drops.needs_explaining({"chg_1m": 2.0}, daily([100, 90, 100]))
+
+
+def test_a_court_trial_is_not_a_drug_trial():
+    assert drops.classify("Corteva, Inari Settle Dispute Over Seed Patents During Trial") != "clinical"
+    assert drops.classify("Acme's phase 3 trial misses its main goal") == "clinical"
+    assert drops.classify("Acme reports pivotal trial results") == "clinical"
+
+
+def test_a_spin_off_collapse_is_called_an_adjustment_not_a_loss():
+    history = daily([80.0] * 20 + [82, 81, 15, 15, 14.8, 14.6, 14.7, 14.6, 14.6, 14.5, 14.6])
+    headlines = [{"title": "States challenge Corteva spinoff over PFAS liabilities",
+                  "on": "2026-09-30", "url": "u", "source": "Reuters"}]
+    out = drops.explain("CTVA", {"name": "Corteva", "chg_1m": -82.0}, history,
+                        {"industry": "Ag"}, {"market_1m": 0.5}, headlines, today=TODAY)
+    assert out["kind"] == "spinoff"
+    assert out["causes"][0]["type"] == "spinoff"
+    assert out["summary"].startswith("Most likely not a real loss")
