@@ -18,10 +18,9 @@ name: Daily market refresh
 
 on:
   schedule:
-    # 11:00 UTC = 7am ET, an hour and a half before the 08:30 ET data releases
-    # and well before the open. The point of this page is to be read BEFORE the
-    # things on its calendar happen.
-    - cron: '0 11 * * 1-5'
+    # 13:00 UTC daily = 6am PT (5am in winter: GitHub's cron is UTC and
+    # ignores daylight saving), the same time as technews.
+    - cron: '0 13 * * *'
   workflow_dispatch:
     inputs:
       provider:
